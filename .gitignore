@@ -1,0 +1,5 @@
+# Project exclude paths
+/cloud-storage-client/target/
+/out/
+/server-file-storage/target/
+/сloud-exchange-models/target/
