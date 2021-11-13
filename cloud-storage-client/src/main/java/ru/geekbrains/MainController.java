@@ -4,6 +4,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +49,12 @@ public class MainController implements Initializable {
     VBox authPanel;
     @FXML
     VBox mainPanel;
+    @FXML
+    TextField hostPath;
+    @FXML
+    TextField serverPath;
+    @FXML
+    TextField hostSearchFile;
 
     private void setActiveWindows(boolean isAuthorized) {
         authPanel.setVisible(!isAuthorized);
@@ -79,11 +86,13 @@ public class MainController implements Initializable {
         - Показываем основное окно
         */
 
+
         connectionManager = new ConnectionManager(serverAddress, serverPort, loginField.getText(), passwordField.getText(), this);
         connectionManager.start();
 
         setActiveWindows(true);
-        connectionManager.fileListReq();
+
+
     }
 
     @Override
@@ -97,10 +106,12 @@ public class MainController implements Initializable {
             if (!Files.exists(clientDir)) {
                 Files.createDirectory(clientDir);
             }
-            refreshHostFiles();
+            refreshHostFiles(null);
         } catch (Exception e) {
             log.debug("File create/read on host error ", e);
         }
+
+        hostPath.setText(clientDir.toString());
     }
 
     public void downloadFromServer() {
@@ -115,9 +126,14 @@ public class MainController implements Initializable {
     }
 
     @SneakyThrows
-    private List<String> getFiles(Path path) {
+    private List<String> getFiles(Path path, String filemask) {
+        if (filemask == null) {
+            filemask = "";
+        }
+        String finalFilemask = filemask;
         return Files.list(path)
                 .map(p -> p.getFileName().toString())
+                .filter(fileName -> fileName.contains(finalFilemask))
                 .collect(Collectors.toList());
     }
 
@@ -128,16 +144,21 @@ public class MainController implements Initializable {
     }
 
     @SneakyThrows
-    public void refreshHostFiles() {
+    public void refreshHostFiles(String filemask) {
         hostFileList.getItems().clear();
-        hostFileList.getItems().addAll(getFiles(clientDir));
+        hostFileList.getItems().addAll(getFiles(clientDir, filemask));
+    }
+
+    @SneakyThrows
+    public void refreshHostFiles() {
+        refreshHostFiles(null);
     }
 
     public void hostCopyFile() {
         try {
             getSelectedHostItem();
             Files.copy(clientDir.resolve(selectedHostFile), clientDir.resolve("copy_" + selectedHostFile), StandardCopyOption.REPLACE_EXISTING);
-            refreshHostFiles();
+            refreshHostFiles(null);
             log.debug("File {} is copied", selectedHostFile);
         } catch (Exception e) {
             log.error("Cant copy file: {}", selectedHostFile);
@@ -147,8 +168,8 @@ public class MainController implements Initializable {
     public void hostDeleteFile() {
         try {
             getSelectedHostItem();
-            Files.delete(Paths.get(clientDir.resolve(selectedHostFile).toString()));
-            refreshHostFiles();
+            Files.deleteIfExists(Paths.get(clientDir.resolve(selectedHostFile).toString()));
+            refreshHostFiles(null);
             log.debug("File {} is deleted", selectedHostFile);
         } catch (Exception e) {
             log.error("Cant delete file: {}", selectedHostFile);
@@ -199,16 +220,41 @@ public class MainController implements Initializable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        refreshHostFiles();
+        refreshHostFiles(null);
     }
 
     public void registerUser() {
-        Authentication authentication = new Authentication("111", "111", "",false, Authentication.Action.LOIN);
+
     }
 
     public void searchOnHost(ActionEvent actionEvent) {
+        refreshHostFiles(hostSearchFile.getText());
+
     }
 
     public void searchOnServer(ActionEvent actionEvent) {
+    }
+
+    public void setPathCaption(Path pathNew) {
+        clientDir = pathNew;
+        hostPath.setText(clientDir.toString());
+    }
+
+    public void enterToDir(MouseEvent mouseEvent) {
+        if (mouseEvent.getClickCount() == 2) {
+            getSelectedHostItem();
+            File fileToSend = Paths.get(clientDir.resolve(selectedHostFile).toString()).toFile();
+
+
+            if (fileToSend.isDirectory()) {
+                setPathCaption(fileToSend.toPath());
+                refreshHostFiles();
+            }
+        }
+    }
+
+    public void backHostDir(MouseEvent mouseEvent) {
+        setPathCaption(clientDir.getParent());
+        refreshHostFiles();
     }
 }

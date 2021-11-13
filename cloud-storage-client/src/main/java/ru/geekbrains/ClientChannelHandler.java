@@ -28,7 +28,13 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
             downloadFile(message, channelHandlerContext);
         } else if (message.getType().equals("fileList")) {
             refreshServerList(message);
+        } else if (message.getType().equals("getDirectory")) {
+            refreshServerPath(message);
         }
+    }
+
+    private void refreshServerPath(Message message) {
+        mainController.serverPath.setText(message.getMessage().toString());
     }
 
     public void refreshServerList(Message message) {

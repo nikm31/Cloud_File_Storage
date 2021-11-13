@@ -8,21 +8,20 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
 import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
+import javafx.scene.control.TextField;
 import lombok.extern.slf4j.Slf4j;
-import ru.geekbrains.models.CloudFile;
-import ru.geekbrains.models.Command;
-import ru.geekbrains.models.FileList;
-import ru.geekbrains.models.GenericFile;
+import ru.geekbrains.models.*;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
 public class ConnectionManager {
-
 
     static ObjectEncoderOutputStream out;
     static ObjectDecoderInputStream in;
@@ -57,6 +56,8 @@ public class ConnectionManager {
         log.debug("Connection with Server is active");
 
         fileListReq();
+        getServerPath();
+        sendAuthInfo();
     }
 
     void stop() {
@@ -94,6 +95,25 @@ public class ConnectionManager {
         channel.writeAndFlush(cloudFile);
     }
 
+    public void sendAuthInfo() {
+        Authentication auth = new Authentication(login,
+                password,
+          //      generateRootDir(login),
+                false,
+                AuthAction.REGISTER);
+        channel.writeAndFlush(auth);
+        log.info("Информация о пользователе передана");
+
+    }
+
+    public void getServerPath() {
+        channel.writeAndFlush(new Command("", "getDirectory"));
+    }
+
+    public Path generateRootDir(String loginField) {
+        return Paths.get(login + "_rootDir");
+    }
+
     public void fileListReq() {
         try {
             List<String> empty = new ArrayList<>();
@@ -101,11 +121,6 @@ public class ConnectionManager {
         } catch (Exception e) {
             log.error("FileList Req Error");
         }
-    }
-
-    public boolean isAuth(String login, String password) {
-
-        return true;
     }
 
 }

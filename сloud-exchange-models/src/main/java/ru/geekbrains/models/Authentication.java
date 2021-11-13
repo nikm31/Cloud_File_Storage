@@ -2,26 +2,25 @@ package ru.geekbrains.models;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import java.nio.file.Path;
 
 @Data
 @AllArgsConstructor
 public class Authentication implements Message {
 
-    public enum Action {LOIN, REGISTER};
-
     private String login;
     private String password;
-    private String rootDirectory;
+   // private Path rootDirectory;
     private boolean isAuthenticated;
-    private Action action;
+    private AuthAction authAction;
 
     @Override
     public String getType() {
-        return "authentication";
+        return "userInfo";
     }
 
     @Override
     public Object getMessage() {
-        return rootDirectory;
+        return this;
     }
 }

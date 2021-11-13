@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
@@ -22,7 +23,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, Message message) {
         log.info("Получен {}", message);
 
-        File serverDir = new File("C:\\Users\\Nikolay\\Desktop\\FileCloudStorage\\server-file-storage\\server");
+        File serverDir = new File(setDirectory().toString());
 
         if (message.getType().equals("upload")) {
             downloadFileToServer(channelHandlerContext, serverDir, message);
@@ -34,8 +35,36 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             deleteFile(channelHandlerContext, serverDir, message);
         } else if (message.getType().equals("fileList")) {
             refreshServerFilesList(channelHandlerContext, serverDir);
+        } else if (message.getType().equals("userInfo")) {
+            registerOrLoginUser(channelHandlerContext, serverDir, message);
+        } else if (message.getType().equals("getDirectory")) {
+            refreshServerDirectory(channelHandlerContext, serverDir);
         }
     }
+
+    private void registerOrLoginUser(ChannelHandlerContext channelHandlerContext, File serverDir, Message message) {
+
+        log.debug("1111111111111111111111111111111111111111111111111111111111111");
+
+    }
+
+    private Path setDirectory() {
+        try {
+            Path serverDir = Paths.get("server-file-storage", "server");
+            if (!Files.exists(serverDir)) {
+                Files.createDirectory(serverDir);
+            }
+            return serverDir;
+        } catch (Exception e) {
+            log.debug("File create/read on server error ", e);
+        }
+        return null;
+    }
+
+    private void refreshServerDirectory(ChannelHandlerContext channelHandlerContext, File serverDir) {
+        channelHandlerContext.writeAndFlush(new Command(serverDir.toString(), "getDirectory"));
+    }
+
 
     private void downloadFileToServer(ChannelHandlerContext channelHandlerContext, File serverDir, Message message) {
         try {

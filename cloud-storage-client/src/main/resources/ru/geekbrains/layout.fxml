@@ -9,7 +9,7 @@
 
 
     <VBox fx:id="authPanel" prefHeight="451.0" prefWidth="780.0">
-        <Label prefHeight="36.0" prefWidth="780.0" text="SERVER LOGIN" textAlignment="CENTER" VBox.vgrow="ALWAYS">
+        <Label prefHeight="36.0" prefWidth="780.0" text="Authentication" textAlignment="CENTER" VBox.vgrow="ALWAYS">
             <font>
                 <Font name="System Bold" size="16.0" />
             </font>
@@ -73,13 +73,13 @@
             </MenuBar>
             <HBox layoutX="20.0" layoutY="139.0" prefHeight="35.0" prefWidth="780.0">
                 <children>
-                    <TextField promptText="hostPath" HBox.hgrow="ALWAYS">
+                    <TextField fx:id="hostPath" promptText="hostPath" HBox.hgrow="ALWAYS">
                         <HBox.margin>
                             <Insets right="10.0" />
                         </HBox.margin>
                     </TextField>
-                    <Button mnemonicParsing="false" text="Back" />
-                    <TextField layoutX="10.0" layoutY="10.0" promptText="serverPath" HBox.hgrow="ALWAYS">
+                    <Button mnemonicParsing="false" text="Back"  onMouseClicked="#backHostDir"/>
+                    <TextField fx:id="serverPath" layoutX="10.0" layoutY="10.0" promptText="serverPath" HBox.hgrow="ALWAYS">
                         <HBox.margin>
                             <Insets left="10.0" right="10.0" />
                         </HBox.margin>
@@ -125,7 +125,7 @@
                 </HBox>
 
 
-                <ListView fx:id="hostFileList" minWidth="280.0" prefHeight="400.0" prefWidth="280" HBox.hgrow="ALWAYS" />
+                <ListView fx:id="hostFileList" minWidth="280.0" prefHeight="400.0" prefWidth="280" HBox.hgrow="ALWAYS" onMouseClicked="#enterToDir"/>
                 <VBox alignment="CENTER" minWidth="200" prefWidth="200" spacing="30.0" HBox.hgrow="NEVER">
                     <children>
                         <Button mnemonicParsing="false" onAction="#downloadFromServer" prefHeight="70.0" prefWidth="117.0" text="Download" />
@@ -141,7 +141,7 @@
             </HBox>
             <HBox prefHeight="35.0" prefWidth="800.0">
 
-                <TextField promptText="hostSearchFile" HBox.hgrow="ALWAYS" onAction="#searchOnHost">
+                <TextField fx:id="hostSearchFile"  promptText="hostSearchFile" HBox.hgrow="ALWAYS" onAction="#searchOnHost">
                     <HBox.margin>
                         <Insets right="10.0" />
                     </HBox.margin>
