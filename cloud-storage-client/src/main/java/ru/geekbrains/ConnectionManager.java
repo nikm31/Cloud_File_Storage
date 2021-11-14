@@ -8,7 +8,6 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
 import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
-import javafx.scene.control.TextField;
 import lombok.extern.slf4j.Slf4j;
 import ru.geekbrains.models.*;
 
@@ -55,9 +54,10 @@ public class ConnectionManager {
         }
         log.debug("Connection with Server is active");
 
+        sendAuthMessage();
         fileListReq();
         getServerPath();
-        sendAuthInfo();
+
     }
 
     void stop() {
@@ -80,6 +80,17 @@ public class ConnectionManager {
         fileListReq();
     }
 
+    public void sendAuthMessage() {
+        Authentication authMessage = new Authentication(login, password, "", false, Authentication.AuthAction.LOGIN);
+        channel.writeAndFlush(authMessage);
+    }
+
+    public void sendRegistrationMessage() {
+        Authentication regMessage = new Authentication(login, password, "", false, Authentication.AuthAction.REGISTER);
+        channel.writeAndFlush(regMessage);
+    }
+
+
     public void serverCopyFile(String file) {
         Command copyCommand = new Command(file, "copyFile");
         channel.writeAndFlush(copyCommand);
@@ -98,11 +109,11 @@ public class ConnectionManager {
     public void sendAuthInfo() {
         Authentication auth = new Authentication(login,
                 password,
-          //      generateRootDir(login),
+                generateRootDir(login).toString(),
                 false,
-                AuthAction.REGISTER);
+                Authentication.AuthAction.LOGIN);
         channel.writeAndFlush(auth);
-        log.info("Информация о пользователе передана");
+        log.info("Информация авторизации о пользователе передана");
 
     }
 

@@ -3,12 +3,14 @@ package ru.geekbrains;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import ru.geekbrains.models.Authentication;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,6 +30,7 @@ public class MainController implements Initializable {
     private ConnectionManager connectionManager;
     private String selectedHostFile;
     private String selectedServerFile;
+    private final long MB = 1048576L;
 
     @FXML
     Label statusBar;
@@ -55,44 +58,47 @@ public class MainController implements Initializable {
     TextField serverPath;
     @FXML
     TextField hostSearchFile;
+    @FXML
+    Label authInfoBar;
+    @FXML
+    Label fileSize;
 
-    private void setActiveWindows(boolean isAuthorized) {
+    @SneakyThrows
+    void setFileSize() {
+        getSelectedHostItem();
+        File fileToSend = Paths.get(clientDir.resolve(selectedHostFile).toString()).toFile();
+        long size = Files.size(fileToSend.toPath());
+        fileSize.setText("Размер файла: \n" + (float) size / MB   + " Мб");
+    }
+
+    public void setActiveWindows(boolean isAuthorized) {
         authPanel.setVisible(!isAuthorized);
         authPanel.setManaged(!isAuthorized);
         mainPanel.setVisible(isAuthorized);
         mainPanel.setManaged(isAuthorized);
     }
 
-    @SneakyThrows
-    public void connectToServer() {
-
+    private String[] getServerAddress() {
         String[] connection = connectAddressField.getText()
                 .trim()
                 .split(":");
-
         if (connection.length != 2) {
             errorConnectionMessage();
             log.error("Error server address or port");
             connectAddressField.setText("127.0.0.1:8189");
-            return;
         }
-        String serverAddress = connection[0];
-        short serverPort = Short.parseShort(connection[1]);
+        return connection;
+    }
 
-        /*
-        - Передаем данные для авторизации
-        - Делаем новый коннект
-        - Запращиваем список файлов
-        - Показываем основное окно
-        */
+    public void registerUser(ActionEvent actionEvent) {
+    }
 
-
+    @SneakyThrows
+    public void connectToServer() {
+        String serverAddress = getServerAddress()[0];
+        short serverPort = Short.parseShort(getServerAddress()[1]);
         connectionManager = new ConnectionManager(serverAddress, serverPort, loginField.getText(), passwordField.getText(), this);
         connectionManager.start();
-
-        setActiveWindows(true);
-
-
     }
 
     @Override
@@ -135,12 +141,6 @@ public class MainController implements Initializable {
                 .map(p -> p.getFileName().toString())
                 .filter(fileName -> fileName.contains(finalFilemask))
                 .collect(Collectors.toList());
-    }
-
-    public void serverBackToDir() {
-    }
-
-    public void hostBackToDir() {
     }
 
     @SneakyThrows
@@ -199,11 +199,11 @@ public class MainController implements Initializable {
         selectedServerFile = serverFileList.getSelectionModel().getSelectedItem();
     }
 
-    private void errorConnectionMessage() {
+    public void errorConnectionMessage() {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("Connection Error");
         alert.setHeaderText("Not Connected");
-        alert.setContentText("Please check address and port of Server");
+        alert.setContentText("Please check address of Server or login / password");
         alert.showAndWait();
     }
 
@@ -223,16 +223,11 @@ public class MainController implements Initializable {
         refreshHostFiles(null);
     }
 
-    public void registerUser() {
-
-    }
-
-    public void searchOnHost(ActionEvent actionEvent) {
+    public void searchOnHost() {
         refreshHostFiles(hostSearchFile.getText());
-
     }
 
-    public void searchOnServer(ActionEvent actionEvent) {
+    public void searchOnServer() {
     }
 
     public void setPathCaption(Path pathNew) {
@@ -244,17 +239,22 @@ public class MainController implements Initializable {
         if (mouseEvent.getClickCount() == 2) {
             getSelectedHostItem();
             File fileToSend = Paths.get(clientDir.resolve(selectedHostFile).toString()).toFile();
-
-
             if (fileToSend.isDirectory()) {
                 setPathCaption(fileToSend.toPath());
                 refreshHostFiles();
             }
         }
+        if (mouseEvent.getClickCount() == 1) {
+            setFileSize();
+        }
     }
 
-    public void backHostDir(MouseEvent mouseEvent) {
+    public void backHostDir() {
         setPathCaption(clientDir.getParent());
         refreshHostFiles();
     }
+
+    public void backServerDir(MouseEvent mouseEvent) {
+    }
+
 }
