@@ -5,25 +5,31 @@ import lombok.Data;
 @Data
 public class Authentication implements Message {
 
-    public enum AuthAction {
+    public enum AuthStatus {
         LOGIN,
-        REGISTER
+        REGISTER,
+        FIND_USER,
+        USER_FOUND,
+        USER_NOTFOUND,
     }
 
     private String login;
     private String password;
     private String rootDirectory;
     private boolean isAuthenticated;
-    private AuthAction authAction;
+    private AuthStatus authStatus;
+    private String fileName;
 
     public Authentication() {}
 
-    public Authentication(String login, String password, String rootDirectory, boolean isAuthenticated, AuthAction authAction) {
+
+
+    public Authentication(String login, String password, String rootDirectory, boolean isAuthenticated, AuthStatus authStatus) {
         this.login = login;
         this.password = password;
         this.rootDirectory = rootDirectory;
         this.isAuthenticated = isAuthenticated;
-        this.authAction = authAction;
+        this.authStatus = authStatus;
     }
 
     @Override

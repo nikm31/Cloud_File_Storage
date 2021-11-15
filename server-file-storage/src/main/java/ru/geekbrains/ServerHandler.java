@@ -22,10 +22,17 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     private AuthenticationProvider authentication = new DatabaseAuthenticator();
     private Authentication authInfoToSend;
     private Authentication authInfoReceived;
+    private Path serverDir;
+    private String userRootDir;
+
 
     @Override
     protected void channelRead0(ChannelHandlerContext channel, Message message) {
         log.info("Получен {}", message);
+
+        if (message.getType().equals("userInfo")) {
+            processUserInfo(channel, message);
+        }
 
         File serverDir = new File(setDirectory().toString());
 
@@ -39,30 +46,50 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             deleteFile(channel, serverDir, message);
         } else if (message.getType().equals("fileList")) {
             refreshServerFilesList(channel, serverDir);
-        } else if (message.getType().equals("userInfo")) {
-            registerOrLoginUser(channel, message);
         } else if (message.getType().equals("getDirectory")) {
             refreshServerDirectory(channel, serverDir);
         }
     }
 
-    private void registerOrLoginUser(ChannelHandlerContext channel, Message message) {
+    private void processUserInfo(ChannelHandlerContext channel, Message message) {
         authInfoReceived = (Authentication) message;
 
-        if (authInfoReceived.getAuthAction() == Authentication.AuthAction.LOGIN) {
+        if (authInfoReceived.getAuthStatus() == Authentication.AuthStatus.LOGIN) {
             authInfoToSend = authentication.userAuthentication(authInfoReceived.getLogin(), authInfoReceived.getPassword());
-            log.info("User registration status {}", authInfoToSend.getAuthAction());
+            userRootDir = authInfoToSend.getRootDirectory();
+            setDirectory();
+            log.info("User registration status {}", authInfoToSend.getAuthStatus());
             channel.writeAndFlush(authInfoToSend);
-        } else if (authInfoReceived.getAuthAction() == Authentication.AuthAction.REGISTER) {
+        } else if (authInfoReceived.getAuthStatus() == Authentication.AuthStatus.REGISTER) {
             authInfoToSend = authentication.userRegistration(authInfoReceived.getLogin(), authInfoReceived.getPassword());
-            log.info("User registration status {}", authInfoToSend.getAuthAction());
+            log.info("User registration status {}", authInfoToSend.getAuthStatus());
             channel.writeAndFlush(authInfoToSend);
+        } else if (authInfoReceived.getAuthStatus() == Authentication.AuthStatus.FIND_USER) {
+
+            String targetDir = authInfoReceived.getRootDirectory();
+            String targetFileName = authInfoReceived.getFileName();
+
+            authInfoToSend = authentication.getUserRootFolderByLogin(authInfoReceived.getLogin());
+
+            String linkDir = authInfoToSend.getRootDirectory();
+
+            Path target = Paths.get("C:\\IMG_6167.jpg");
+            Path link = Paths.get("C:\\IMG_6168.jpg");
+
+            try {
+                Files.createSymbolicLink(link, target);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+
+            // channel.writeAndFlush(authInfoToSend);
         }
     }
 
     private Path setDirectory() {
         try {
-            Path serverDir = Paths.get("server-file-storage", "server");
+            serverDir = Paths.get("server-file-storage", userRootDir);
             if (!Files.exists(serverDir)) {
                 Files.createDirectory(serverDir);
             }

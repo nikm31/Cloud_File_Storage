@@ -14,8 +14,6 @@ import ru.geekbrains.models.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,6 +28,7 @@ public class ConnectionManager {
     private final MainController mainController;
     private final String login;
     private final String password;
+    private Authentication userInfoMessage;
 
     public ConnectionManager(String serverAddress, short serverPort, String login, String password, MainController mainController) {
         this.serverAddress = serverAddress;
@@ -39,6 +38,7 @@ public class ConnectionManager {
         this.password = password;
     }
 
+    // создаем подключение и подключаемся к серверу при нажатии Login
     void start() {
         EventLoopGroup group = new NioEventLoopGroup();
         try {
@@ -53,13 +53,9 @@ public class ConnectionManager {
             log.error("Cant start server", e);
         }
         log.debug("Connection with Server is active");
-
-        sendAuthMessage();
-        fileListReq();
-        getServerPath();
-
     }
 
+    // закрываем соединение и скрываем основную форму
     void stop() {
         try {
             out.close();
@@ -74,57 +70,67 @@ public class ConnectionManager {
         log.debug("Connection with Server is closed");
     }
 
+    // отправка файла на сервер
     public void uploadFile(File file) throws IOException {
         CloudFile cloudFile = new CloudFile(new GenericFile(file.getName(), Files.readAllBytes(file.toPath())), "upload");
         channel.writeAndFlush(cloudFile);
         fileListReq();
     }
 
+    // отправка запроса на шаринг файла с пользователем
+    public void sendReqToShareFile(String login, String fileName){
+        userInfoMessage = new Authentication(login, "", "", false, Authentication.AuthStatus.FIND_USER);
+        userInfoMessage.setFileName(fileName);
+        channel.writeAndFlush(userInfoMessage);
+    }
+
+    // Посылаем сообщение на аунтификацию польтзователя
     public void sendAuthMessage() {
-        Authentication authMessage = new Authentication(login, password, "", false, Authentication.AuthAction.LOGIN);
-        channel.writeAndFlush(authMessage);
+        userInfoMessage = new Authentication(login, password, "", false, Authentication.AuthStatus.LOGIN);
+        channel.writeAndFlush(userInfoMessage);
     }
 
+    // регистрируем юзера
     public void sendRegistrationMessage() {
-        Authentication regMessage = new Authentication(login, password, "", false, Authentication.AuthAction.REGISTER);
-        channel.writeAndFlush(regMessage);
+        userInfoMessage = new Authentication(login, password, "", false, Authentication.AuthStatus.REGISTER);
+        channel.writeAndFlush(userInfoMessage);
     }
 
-
+    // копирование файла на сервере
     public void serverCopyFile(String file) {
         Command copyCommand = new Command(file, "copyFile");
         channel.writeAndFlush(copyCommand);
     }
 
+    // удаление файла на сервере
     public void serverDeleteFile(String file) {
         Command copyCommand = new Command(file, "deleteFile");
         channel.writeAndFlush(copyCommand);
     }
 
+    // скачивание файла с сервера
     public void downloadFile(String file) {
         CloudFile cloudFile = new CloudFile(new GenericFile(file, new byte[0]), "download");
         channel.writeAndFlush(cloudFile);
     }
 
+    // запрос на авторизацию
     public void sendAuthInfo() {
         Authentication auth = new Authentication(login,
                 password,
-                generateRootDir(login).toString(),
+                "",
                 false,
-                Authentication.AuthAction.LOGIN);
+                Authentication.AuthStatus.LOGIN);
         channel.writeAndFlush(auth);
         log.info("Информация авторизации о пользователе передана");
-
     }
 
+    // запрос стрцуктуры каталога сервера
     public void getServerPath() {
         channel.writeAndFlush(new Command("", "getDirectory"));
     }
 
-    public Path generateRootDir(String loginField) {
-        return Paths.get(login + "_rootDir");
-    }
-
+    // запрос списка файла сервера
     public void fileListReq() {
         try {
             List<String> empty = new ArrayList<>();

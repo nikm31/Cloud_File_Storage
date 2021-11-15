@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.*?>
+<?import javafx.scene.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
@@ -36,6 +37,9 @@
                 <font>
                     <Font name="System Bold" size="16.0" />
                 </font>
+            <cursor>
+               <Cursor fx:constant="DEFAULT" />
+            </cursor>
             </Button>
             <VBox.margin>
                 <Insets top="20.0" />
@@ -97,14 +101,32 @@
         <!-- Списки файлов и кнопки скачать / загрузить / информация о размере файла -->
         <HBox alignment="TOP_CENTER" prefHeight="440.0" prefWidth="780.0" VBox.vgrow="NEVER">
             <ListView fx:id="hostFileList" minWidth="280.0" onMouseClicked="#enterToDir" prefHeight="400.0" prefWidth="280" HBox.hgrow="ALWAYS">
-            <HBox.margin>
-               <Insets left="10.0" />
-            </HBox.margin></ListView>
-            <VBox alignment="CENTER" minWidth="200" prefWidth="200" spacing="30.0" HBox.hgrow="NEVER">
-
-                <Button mnemonicParsing="false" onAction="#downloadFromServer" prefHeight="70.0" prefWidth="117.0" text="Download" />
-            <Label fx:id="fileSize" text="File size:" />
-                <Button mnemonicParsing="false" onAction="#uploadToServer" prefHeight="70.0" prefWidth="115.0" text="Upload" />
+                <HBox.margin>
+                    <Insets left="10.0" />
+                </HBox.margin>
+            </ListView>
+            <VBox alignment="CENTER" minWidth="200" prefWidth="200" spacing="20.0" HBox.hgrow="ALWAYS">
+            <VBox alignment="CENTER" prefHeight="200.0" prefWidth="100.0" spacing="20.0" VBox.vgrow="ALWAYS">
+               <children>
+      
+                      <Button mnemonicParsing="false" onAction="#downloadFromServer" prefHeight="80.0" prefWidth="117.0" text="&lt; Download" VBox.vgrow="ALWAYS" />
+                      <Button mnemonicParsing="false" onAction="#uploadToServer" prefHeight="80.0" prefWidth="115.0" text="Upload &gt;" VBox.vgrow="ALWAYS" />
+               </children>
+               <padding>
+                  <Insets top="10.0" />
+               </padding>
+            </VBox>
+            <VBox alignment="BOTTOM_CENTER" prefHeight="200.0" prefWidth="100.0">
+               <children>
+                  <Label alignment="BOTTOM_CENTER" contentDisplay="BOTTOM" text="Enter user to share file" />
+                  <TextField fx:id="userLoginToShare">
+                     <VBox.margin>
+                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                     </VBox.margin>
+                  </TextField>
+                  <Button contentDisplay="CENTER" mnemonicParsing="false" onMouseClicked="#shareFileWithUser" text="Share" />
+               </children>
+            </VBox>
             </VBox>
             <ListView fx:id="serverFileList" minWidth="280.0" prefWidth="280" HBox.hgrow="ALWAYS" />
             <HBox prefHeight="100.0" prefWidth="200.0" />

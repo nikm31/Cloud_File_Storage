@@ -18,7 +18,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
     private final MainController mainController;
-    private Authentication authInfoReceived;
 
     @Override
     protected void channelRead0(ChannelHandlerContext channel, Message message) {
@@ -38,11 +37,13 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
     }
 
     private void authorizeClient(Message message) {
-        authInfoReceived = (Authentication) message;
+        Authentication authInfoReceived = (Authentication) message;
 
-        if (authInfoReceived.getAuthAction() == Authentication.AuthAction.LOGIN & authInfoReceived.isAuthenticated() == true) {
+        if (authInfoReceived.getAuthStatus() == Authentication.AuthStatus.LOGIN & authInfoReceived.isAuthenticated()) {
+            // если статус запроса Login и сервер вернул, что авторизация пройдена показываем основную форму
             mainController.setActiveWindows(true);
-        } else if (authInfoReceived.getAuthAction() == Authentication.AuthAction.LOGIN & authInfoReceived.isAuthenticated() == false) {
+            mainController.enterClientDir();
+        } else if (authInfoReceived.getAuthStatus() == Authentication.AuthStatus.LOGIN & !authInfoReceived.isAuthenticated()) {
             Platform.runLater(() -> {
                 mainController.authInfoBar.setText("Не верный логин / пароль");
                 mainController.errorConnectionMessage();
@@ -62,17 +63,17 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
     }
 
     public void refreshHostList() {
-        Platform.runLater(mainController::refreshHostFiles);
+        Platform.runLater(() -> mainController.refreshHostFiles(null));
     }
 
     public void refreshStatusBar(Message message) {
         Platform.runLater(() -> mainController.statusBar.setText((String) message.getMessage()));
     }
 
-
+    // огика скачивания файла с сервера
     public void downloadFile(Message message, ChannelHandlerContext channel) {
         try {
-            File dir = new File("C:\\Users\\Nikolay\\Desktop\\FileCloudStorage\\cloud-storage-client\\client");
+            File dir = new File(mainController.hostPath.getText());
             GenericFile fileSource = (GenericFile) message.getMessage();
             File fileToCreate = new File(dir, fileSource.getFilename());
             FileOutputStream fos = new FileOutputStream(fileToCreate);

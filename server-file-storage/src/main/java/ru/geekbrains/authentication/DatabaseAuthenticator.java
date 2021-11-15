@@ -34,7 +34,7 @@ public class DatabaseAuthenticator implements AuthenticationProvider {
             } else {
                 authentication.setAuthenticated(false);
             }
-            authentication.setAuthAction(Authentication.AuthAction.LOGIN);
+            authentication.setAuthStatus(Authentication.AuthStatus.LOGIN);
             return authentication;
         } catch (Exception e) {
             log.error("Error statement", e);
@@ -65,12 +65,33 @@ public class DatabaseAuthenticator implements AuthenticationProvider {
             psRegister.execute();
             authentication.setRootDirectory(rootDir);
             authentication.setAuthenticated(true);
-            authentication.setAuthAction(Authentication.AuthAction.REGISTER);
+            authentication.setAuthStatus(Authentication.AuthStatus.REGISTER);
             return authentication;
         } catch (Exception e) {
             log.error("Error statement", e);
         }
         log.debug("User {} added to BD", login);
+        return authentication;
+    }
+
+    @Override
+    public Authentication getUserRootFolderByLogin(String login) {
+        try (PreparedStatement preparedStatement = connection.prepareStatement("select rootFolder from users where login = ?")) {
+            preparedStatement.setString(1, login);
+            ResultSet rs = preparedStatement.executeQuery();
+            if (rs.next()) {
+                authentication.setRootDirectory(rs.getString("rootFolder"));
+                authentication.setAuthStatus(Authentication.AuthStatus.USER_FOUND);
+                log.debug("Login is found in DB. Sending rootFolder");
+            } else {
+                authentication.setAuthStatus(Authentication.AuthStatus.USER_NOTFOUND);
+                log.debug("Login is not found in DB. Sending status");
+            }
+            return authentication;
+        } catch (Exception e) {
+            log.error("Error statement", e);
+        }
+        log.debug("Login or password is accepted");
         return authentication;
     }
 
