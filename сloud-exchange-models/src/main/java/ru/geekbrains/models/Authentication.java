@@ -1,27 +1,44 @@
 package ru.geekbrains.models;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
-@AllArgsConstructor
 public class Authentication implements Message {
 
-    public enum Action {LOIN, REGISTER};
+    public enum AuthStatus {
+        LOGIN,
+        REGISTER,
+        FIND_USER,
+        USER_FOUND,
+        USER_NOTFOUND,
+    }
 
     private String login;
     private String password;
     private String rootDirectory;
     private boolean isAuthenticated;
-    private Action action;
+    private AuthStatus authStatus;
+    private String fileName;
+
+    public Authentication() {}
+
+
+
+    public Authentication(String login, String password, String rootDirectory, boolean isAuthenticated, AuthStatus authStatus) {
+        this.login = login;
+        this.password = password;
+        this.rootDirectory = rootDirectory;
+        this.isAuthenticated = isAuthenticated;
+        this.authStatus = authStatus;
+    }
 
     @Override
     public String getType() {
-        return "authentication";
+        return "userInfo";
     }
 
     @Override
     public Object getMessage() {
-        return rootDirectory;
+        return this;
     }
 }

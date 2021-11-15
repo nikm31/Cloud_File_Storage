@@ -12,21 +12,12 @@ import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import ru.geekbrains.authentication.AuthenticationProvider;
-import ru.geekbrains.authentication.DatabaseAuthenticator;
 
 @Slf4j
 public class Server {
-    private final AuthenticationProvider authentication;
-
-    public AuthenticationProvider getAuthentication() {
-        return authentication;
-    }
 
     @SneakyThrows
     public Server() {
-        this.authentication = new DatabaseAuthenticator();
-        authentication.createDB();
         EventLoopGroup auth = new NioEventLoopGroup(1);
         EventLoopGroup worker = new NioEventLoopGroup();
 
