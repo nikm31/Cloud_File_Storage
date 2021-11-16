@@ -72,8 +72,7 @@ public class ConnectionManager {
 
     // отправка файла на сервер
     public void uploadFile(File file) throws IOException {
-        CloudFile cloudFile = new CloudFile(new GenericFile(file.getName(), Files.readAllBytes(file.toPath())), CloudFile.SendFileAction.UPLOAD);
-        channel.writeAndFlush(cloudFile);
+        channel.writeAndFlush(new CloudFile(new GenericFile(file.getName(), Files.readAllBytes(file.toPath())), CloudFile.SendFileAction.UPLOAD));
         fileListReq();
     }
 
@@ -86,42 +85,32 @@ public class ConnectionManager {
 
     // Посылаем сообщение на аунтификацию польтзователя
     public void sendAuthMessage() {
-        userInfoMessage = new Authentication(login, password, "", false, Authentication.AuthStatus.LOGIN);
-        channel.writeAndFlush(userInfoMessage);
+        channel.writeAndFlush(new Authentication(login, password, "", false, Authentication.AuthStatus.LOGIN));
     }
 
     // регистрируем юзера
     public void sendRegistrationMessage() {
-        userInfoMessage = new Authentication(login, password, "", false, Authentication.AuthStatus.REGISTER);
-        channel.writeAndFlush(userInfoMessage);
+        channel.writeAndFlush(new Authentication(login, password, "", false, Authentication.AuthStatus.REGISTER));
     }
 
     // копирование файла на сервере
     public void serverCopyFile(String file) {
-        Command copyCommand = new Command(file, Command.CommandAction.COPY);
-        channel.writeAndFlush(copyCommand);
+        channel.writeAndFlush(new Command(file, Command.CommandAction.COPY));
     }
 
     // удаление файла на сервере
     public void serverDeleteFile(String file) {
-        Command copyCommand = new Command(file, Command.CommandAction.DELETE);
-        channel.writeAndFlush(copyCommand);
+        channel.writeAndFlush(new Command(file, Command.CommandAction.DELETE));
     }
 
     // скачивание файла с сервера
     public void downloadFile(String file) {
-        CloudFile cloudFile = new CloudFile(new GenericFile(file, new byte[0]), CloudFile.SendFileAction.DOWNLOAD);
-        channel.writeAndFlush(cloudFile);
+        channel.writeAndFlush(new CloudFile(new GenericFile(file, new byte[0]), CloudFile.SendFileAction.DOWNLOAD));
     }
 
     // запрос на авторизацию
     public void sendAuthInfo() {
-        Authentication auth = new Authentication(login,
-                password,
-                "",
-                false,
-                Authentication.AuthStatus.LOGIN);
-        channel.writeAndFlush(auth);
+        channel.writeAndFlush(new Authentication(login, password, "", false, Authentication.AuthStatus.LOGIN));
         log.info("Информация авторизации о пользователе передана");
     }
 
@@ -140,4 +129,23 @@ public class ConnectionManager {
         }
     }
 
+    // запрос создание папки на серверу
+    public void sendReqToCreateFolder() {
+        channel.writeAndFlush(new Command("", Command.CommandAction.CREATE_DIRECTORY));
+    }
+
+    // перейти в папку сервера
+    public void enterToServerDir(String selectedItem) {
+        channel.writeAndFlush(new Command(selectedItem, Command.CommandAction.ENTER_TO_DIRECTORY));
+    }
+
+    // получить размер файла на сервере
+    public void getServerFileSize(String selectedItem) {
+        channel.writeAndFlush(new Command(selectedItem, Command.CommandAction.FILE_SIZE));
+    }
+
+    // перейти в директорию родителя
+    public void backToParentDir(String path) {
+        channel.writeAndFlush(new Command(path, Command.CommandAction.BACK_TO_PARENT_SERVER_PATH));
+    }
 }

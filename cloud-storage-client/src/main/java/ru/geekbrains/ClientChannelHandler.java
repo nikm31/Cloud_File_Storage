@@ -28,7 +28,7 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
         if (message.getType().equals("USER_INFO")) {
             authorizeClient(message);
         }
-        if (message.getType().equals("STATUS")) {
+        if (message.getType().equals("STATUS") || message.getType().equals("FILE_SIZE")) {
             refreshStatusBar(message);
         }
         if (message.getType().equals("UPLOAD")) {
@@ -40,6 +40,18 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
         if (message.getType().equals("SEND_DIRECTORY")) {
             refreshServerPath(message);
         }
+        if (message.getType().equals("UPDATE_SERVER_PATH")) {
+            updateServerPath(message);
+        }
+
+    }
+
+    // обновляем путь на форме
+    private void updateServerPath(Message message) {
+        Platform.runLater(() -> {
+        mainController.serverPath.clear();
+        mainController.serverPath.setText(message.getMessage().toString());
+        });
     }
 
     // обрабатываем ответы сервера на авторизацию / регистрацию

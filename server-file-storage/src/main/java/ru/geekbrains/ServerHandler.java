@@ -36,19 +36,87 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
         if (message.getType().equals("UPLOAD")) {
             downloadFileToServer(channel, serverDir, message);
-        } else if (message.getType().equals("DOWNLOAD")) {
+        }
+        if (message.getType().equals("DOWNLOAD")) {
             uploadFileToUser(channel, serverDir, message);
-        } else if (message.getType().equals("COPY")) {
+        }
+        if (message.getType().equals("COPY")) {
             copyFile(channel, serverDir, message);
-        } else if (message.getType().equals("DELETE")) {
+        }
+        if (message.getType().equals("DELETE")) {
             deleteFile(channel, serverDir, message);
-        } else if (message.getType().equals("FILE_LIST")) {
+        }
+        if (message.getType().equals("FILE_LIST")) {
             refreshServerFilesList(channel, serverDir);
-        } else if (message.getType().equals("GET_DIRECTORY")) {
+        }
+        if (message.getType().equals("GET_DIRECTORY")) {
             refreshServerDirectory(channel, serverDir);
+        }
+        if (message.getType().equals("CREATE_DIRECTORY")) {
+            createUserNewFolder(channel, serverDir);
+        }
+        if (message.getType().equals("ENTER_TO_DIRECTORY")) {
+            enterToFolder(message, serverDir, channel);
+        }
+        if (message.getType().equals("FILE_SIZE")) {
+            sendFileSize(message, serverDir, channel);
+        }
+        if (message.getType().equals("BACK_TO_PARENT_SERVER_PATH")) {
+            getParentPath(message, channel);
+        }
+
+    }
+
+    // получаем текущую директорию Path сервера из формы клиента и возвращаем файлы родителя и путь
+    private void getParentPath(Message message, ChannelHandlerContext channel) {
+        File current = Paths.get(message.getMessage().toString()).toFile();
+        File parent = Paths.get(current.getParent()).toFile();
+        refreshServerFilesList(channel, parent);
+        refreshServerDirectory(channel, parent);
+    }
+
+    // отправляем размер выбранного файла в листе на сервере
+    private void sendFileSize(Message message, File serverDir, ChannelHandlerContext channel) {
+        try {
+            String dir = message.getMessage().toString();
+            File fileToSend = Paths.get(String.valueOf(serverDir.toPath().resolve(dir))).toFile();
+            long size = Files.size(fileToSend.toPath());
+            long MB = 1048576L;
+            channel.writeAndFlush(new Command((float) size / MB + " Мб" , Command.CommandAction.FILE_SIZE));
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
+    //Переходим в новую директорию на сервере и возвращаем новый путь
+    private void enterToFolder(Message message, File serverDir, ChannelHandlerContext channel) {
+        String dir = message.getMessage().toString();
+        File fileToSend = Paths.get(String.valueOf(serverDir.toPath().resolve(dir))).toFile();
+        if (fileToSend.isDirectory()) {
+            serverDir = fileToSend;
+            refreshServerFilesList(channel, serverDir);
+            channel.writeAndFlush(new Command(serverDir.toString(), Command.CommandAction.UPDATE_SERVER_PATH));
+        }
+    }
+
+    // создание новых папок
+    private void createUserNewFolder(ChannelHandlerContext channel, File serverDir) {
+        try {
+            if (Paths.get(serverDir + "\\Новая папка").toFile().exists()) {
+                int i = 1;
+                while (Paths.get(serverDir + "\\Новая папка" + " (" + i + ")").toFile().exists()) {
+                    i++;
+                }
+                Files.createDirectory(Paths.get(serverDir + "\\Новая папка" + " (" + i + ")"));
+            }
+            Files.createDirectory(Paths.get(serverDir + "\\Новая папка"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        refreshServerFilesList(channel, serverDir);
+    }
+
+    // обработчик информаций касающихся юзера
     private void processUserInfo(ChannelHandlerContext channel, Message message) {
         Authentication authInfoReceived = (Authentication) message;
 
@@ -70,8 +138,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             String link = authInfoToSend.getRootDirectory();
             log.debug("ready to create link");
 
-        //    Path target = Paths.get("server-file-storage" + target + file);
-        //    Path link = Paths.get("C:\\IMG_6168.jpg");
+            //    Path target = Paths.get("server-file-storage" + target + file);
+            //    Path link = Paths.get("C:\\IMG_6168.jpg");
 
 //            try {
 //                Files.createSymbolicLink(link, target);
@@ -84,6 +152,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         }
     }
 
+    // назначаем директорию юзеру при входе
     private Path setDirectory() {
         try {
             Path serverDir = Paths.get("server-file-storage", userRootDir);
@@ -97,10 +166,12 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         return null;
     }
 
+    // обновляем директорию
     private void refreshServerDirectory(ChannelHandlerContext channel, File serverDir) {
         channel.writeAndFlush(new Command(serverDir.toString(), Command.CommandAction.SEND_DIRECTORY));
     }
 
+    // записываем файл на сервер
     private void downloadFileToServer(ChannelHandlerContext channel, File serverDir, Message message) {
         try {
             GenericFile fileSource = (GenericFile) message.getMessage();
@@ -115,6 +186,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         }
     }
 
+    // отправляем файл юзеру
     private void uploadFileToUser(ChannelHandlerContext channel, File serverDir, Message message) {
         try {
             GenericFile fileSource = (GenericFile) message.getMessage();
@@ -128,6 +200,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         }
     }
 
+    // копируем файл
     private void copyFile(ChannelHandlerContext channel, File serverDir, Message message) {
         try {
             Files.copy(serverDir.toPath().resolve((String) message.getMessage()), serverDir.toPath().resolve("copy_" + message.getMessage()), StandardCopyOption.REPLACE_EXISTING);
@@ -140,6 +213,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         }
     }
 
+    // удаляем файл
     private void deleteFile(ChannelHandlerContext channel, File serverDir, Message message) {
         try {
             Files.delete(Paths.get(serverDir.toPath().resolve(message.getMessage().toString()).toString()));
@@ -152,6 +226,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         }
     }
 
+    // обновляем список файлов
     private void refreshServerFilesList(ChannelHandlerContext channel, File serverDir) {
         try {
             List<String> files;

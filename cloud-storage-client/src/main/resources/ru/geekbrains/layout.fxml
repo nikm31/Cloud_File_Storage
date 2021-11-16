@@ -72,6 +72,7 @@
                     <items>
                         <MenuItem mnemonicParsing="false" onAction="#serverCopyFile" text="Copy" />
                         <MenuItem mnemonicParsing="false" onAction="#serverDeleteFile" text="Delete" />
+                        <MenuItem mnemonicParsing="false" onAction="#serverCreateNewFolder" text="New Folder" />
                     </items>
                 </Menu>
             </menus>
@@ -128,7 +129,7 @@
                </children>
             </VBox>
             </VBox>
-            <ListView fx:id="serverFileList" minWidth="280.0" prefWidth="280" HBox.hgrow="ALWAYS" />
+            <ListView fx:id="serverFileList" minWidth="280.0" prefWidth="280" HBox.hgrow="ALWAYS" onMouseClicked="#enterToServerDir"/>
             <HBox prefHeight="100.0" prefWidth="200.0" />
         </HBox>
 

@@ -80,7 +80,7 @@ public class MainController implements Initializable {
         if (connection.length != 2) {
             errorConnectionMessage();
             log.error("Error server address or port");
-            connectAddressField.setText("127.0.0.1:8189");
+//            connectAddressField.setText("127.0.0.1:8189");
         }
         return connection;
     }
@@ -257,17 +257,34 @@ public class MainController implements Initializable {
         }
     }
 
-    // возврат в папку на уровень ниже
+    // переходим в папку на сервере
+    public void enterToServerDir(MouseEvent mouseEvent) {
+        if (mouseEvent.getClickCount() == 2) {
+            connectionManager.enterToServerDir(serverFileList.getSelectionModel().getSelectedItem());
+        } else if (mouseEvent.getClickCount() == 1) {
+            connectionManager.getServerFileSize(serverFileList.getSelectionModel().getSelectedItem());
+        }
+    }
+
+    // возврат в папку на уровень ниже на хосте
     public void backHostDir() {
         setPathCaption(clientDir.getParent());
         refreshHostFiles(null);
     }
 
+    // возврат в папку на уровень на сервере
     public void backServerDir() {
+        connectionManager.backToParentDir(serverPath.getText());
     }
 
     // создаем символическую ссылку другому юзеру на выбранный файл
     public void shareFileWithUser() {
         connectionManager.sendReqToShareFile(userLoginToShare.getText(), getSelectedHostItem());
     }
+
+    public void serverCreateNewFolder() {
+        connectionManager.sendReqToCreateFolder();
+    }
+
+
 }
