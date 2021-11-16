@@ -5,7 +5,6 @@ public class Command implements Message{
     public enum CommandAction {
         COPY,
         DELETE,
-
         GET_DIRECTORY,
         SEND_DIRECTORY,
         CREATE_DIRECTORY,
