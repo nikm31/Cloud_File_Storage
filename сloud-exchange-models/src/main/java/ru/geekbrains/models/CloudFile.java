@@ -4,17 +4,25 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class CloudFile implements Message {
-private final GenericFile genericFile;
-private String typeOfTransfer;
 
-    public CloudFile(GenericFile genericFile, String typeOfTransfer) {
+    public enum SendFileAction {
+        UPLOAD,
+        DOWNLOAD
+    }
+
+    private final GenericFile genericFile;
+    private SendFileAction sendFileAction;
+
+
+
+    public CloudFile(GenericFile genericFile, SendFileAction sendFileAction) {
         this.genericFile = genericFile;
-        this.typeOfTransfer = typeOfTransfer;
+        this.sendFileAction = sendFileAction;
     }
 
     @Override
     public String getType() {
-        return typeOfTransfer;
+        return sendFileAction.toString();
     }
 
     @Override

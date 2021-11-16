@@ -15,14 +15,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
 public class ServerHandler extends SimpleChannelInboundHandler<Message> {
-    private AuthenticationProvider authentication = new DatabaseAuthenticator();
-    private Authentication authInfoToSend;
-    private Authentication authInfoReceived;
-    private Path serverDir;
+    private final AuthenticationProvider authentication = new DatabaseAuthenticator();
     private String userRootDir;
 
 
@@ -30,30 +28,31 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     protected void channelRead0(ChannelHandlerContext channel, Message message) {
         log.info("Получен {}", message);
 
-        if (message.getType().equals("userInfo")) {
+        if (message.getType().equals("USER_INFO")) {
             processUserInfo(channel, message);
         }
 
-        File serverDir = new File(setDirectory().toString());
+        File serverDir = new File(Objects.requireNonNull(setDirectory()).toString());
 
-        if (message.getType().equals("upload")) {
+        if (message.getType().equals("UPLOAD")) {
             downloadFileToServer(channel, serverDir, message);
-        } else if (message.getType().equals("download")) {
+        } else if (message.getType().equals("DOWNLOAD")) {
             uploadFileToUser(channel, serverDir, message);
-        } else if (message.getType().equals("copyFile")) {
+        } else if (message.getType().equals("COPY")) {
             copyFile(channel, serverDir, message);
-        } else if (message.getType().equals("deleteFile")) {
+        } else if (message.getType().equals("DELETE")) {
             deleteFile(channel, serverDir, message);
-        } else if (message.getType().equals("fileList")) {
+        } else if (message.getType().equals("FILE_LIST")) {
             refreshServerFilesList(channel, serverDir);
-        } else if (message.getType().equals("getDirectory")) {
+        } else if (message.getType().equals("GET_DIRECTORY")) {
             refreshServerDirectory(channel, serverDir);
         }
     }
 
     private void processUserInfo(ChannelHandlerContext channel, Message message) {
-        authInfoReceived = (Authentication) message;
+        Authentication authInfoReceived = (Authentication) message;
 
+        Authentication authInfoToSend;
         if (authInfoReceived.getAuthStatus() == Authentication.AuthStatus.LOGIN) {
             authInfoToSend = authentication.userAuthentication(authInfoReceived.getLogin(), authInfoReceived.getPassword());
             userRootDir = authInfoToSend.getRootDirectory();
@@ -65,22 +64,20 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             log.info("User registration status {}", authInfoToSend.getAuthStatus());
             channel.writeAndFlush(authInfoToSend);
         } else if (authInfoReceived.getAuthStatus() == Authentication.AuthStatus.FIND_USER) {
-
-            String targetDir = authInfoReceived.getRootDirectory();
-            String targetFileName = authInfoReceived.getFileName();
-
+            String target = authInfoReceived.getRootDirectory();
+            String file = authInfoReceived.getFileName();
             authInfoToSend = authentication.getUserRootFolderByLogin(authInfoReceived.getLogin());
+            String link = authInfoToSend.getRootDirectory();
+            log.debug("ready to create link");
 
-            String linkDir = authInfoToSend.getRootDirectory();
+        //    Path target = Paths.get("server-file-storage" + target + file);
+        //    Path link = Paths.get("C:\\IMG_6168.jpg");
 
-            Path target = Paths.get("C:\\IMG_6167.jpg");
-            Path link = Paths.get("C:\\IMG_6168.jpg");
-
-            try {
-                Files.createSymbolicLink(link, target);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+//            try {
+//                Files.createSymbolicLink(link, target);
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
 
 
             // channel.writeAndFlush(authInfoToSend);
@@ -89,7 +86,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     private Path setDirectory() {
         try {
-            serverDir = Paths.get("server-file-storage", userRootDir);
+            Path serverDir = Paths.get("server-file-storage", userRootDir);
             if (!Files.exists(serverDir)) {
                 Files.createDirectory(serverDir);
             }
@@ -101,7 +98,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     }
 
     private void refreshServerDirectory(ChannelHandlerContext channel, File serverDir) {
-        channel.writeAndFlush(new Command(serverDir.toString(), "getDirectory"));
+        channel.writeAndFlush(new Command(serverDir.toString(), Command.CommandAction.SEND_DIRECTORY));
     }
 
     private void downloadFileToServer(ChannelHandlerContext channel, File serverDir, Message message) {
@@ -111,8 +108,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             FileOutputStream fos = new FileOutputStream(fileToCreate);
             fos.write(fileSource.getContent());
             fos.close();
-            channel.writeAndFlush(new Status("ok"));
+            channel.writeAndFlush(new Status("Файл передан на сервер " + fileSource.getFilename()));
         } catch (Exception e) {
+            channel.writeAndFlush(new Status("Ошибка записи файла на сервере"));
             log.error("Error file transfer to server");
         }
     }
@@ -121,10 +119,11 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         try {
             GenericFile fileSource = (GenericFile) message.getMessage();
             File fileToUpload = new File(serverDir, fileSource.getFilename());
-            CloudFile cloudFile = new CloudFile(new GenericFile(fileSource.getFilename(), Files.readAllBytes(fileToUpload.toPath())), "upload");
+            CloudFile cloudFile = new CloudFile(new GenericFile(fileSource.getFilename(), Files.readAllBytes(fileToUpload.toPath())), CloudFile.SendFileAction.UPLOAD);
             channel.writeAndFlush(cloudFile);
-            channel.writeAndFlush(new Status("ok"));
+            channel.writeAndFlush(new Status("Файл отправлен клиенту " + fileSource.getFilename()));
         } catch (Exception e) {
+            channel.writeAndFlush(new Status("Ошибка отправки файла клиенту"));
             log.error("Error file transfer to user");
         }
     }
@@ -133,8 +132,10 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         try {
             Files.copy(serverDir.toPath().resolve((String) message.getMessage()), serverDir.toPath().resolve("copy_" + message.getMessage()), StandardCopyOption.REPLACE_EXISTING);
             refreshServerFilesList(channel, serverDir);
+            channel.writeAndFlush(new Status("Файл скопирован на сервере"));
             log.debug("File is copied");
         } catch (Exception e) {
+            channel.writeAndFlush(new Status("Ошибка копирования файла"));
             log.error("Cant copy file:");
         }
     }
@@ -143,8 +144,10 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         try {
             Files.delete(Paths.get(serverDir.toPath().resolve(message.getMessage().toString()).toString()));
             refreshServerFilesList(channel, serverDir);
+            channel.writeAndFlush(new Status("Файл удален на сервере"));
             log.debug("File is deleted");
         } catch (Exception e) {
+            channel.writeAndFlush(new Status("Ошибка удаления файла"));
             log.error("Cant delete file:");
         }
     }

@@ -72,7 +72,7 @@ public class ConnectionManager {
 
     // отправка файла на сервер
     public void uploadFile(File file) throws IOException {
-        CloudFile cloudFile = new CloudFile(new GenericFile(file.getName(), Files.readAllBytes(file.toPath())), "upload");
+        CloudFile cloudFile = new CloudFile(new GenericFile(file.getName(), Files.readAllBytes(file.toPath())), CloudFile.SendFileAction.UPLOAD);
         channel.writeAndFlush(cloudFile);
         fileListReq();
     }
@@ -98,19 +98,19 @@ public class ConnectionManager {
 
     // копирование файла на сервере
     public void serverCopyFile(String file) {
-        Command copyCommand = new Command(file, "copyFile");
+        Command copyCommand = new Command(file, Command.CommandAction.COPY);
         channel.writeAndFlush(copyCommand);
     }
 
     // удаление файла на сервере
     public void serverDeleteFile(String file) {
-        Command copyCommand = new Command(file, "deleteFile");
+        Command copyCommand = new Command(file, Command.CommandAction.DELETE);
         channel.writeAndFlush(copyCommand);
     }
 
     // скачивание файла с сервера
     public void downloadFile(String file) {
-        CloudFile cloudFile = new CloudFile(new GenericFile(file, new byte[0]), "download");
+        CloudFile cloudFile = new CloudFile(new GenericFile(file, new byte[0]), CloudFile.SendFileAction.DOWNLOAD);
         channel.writeAndFlush(cloudFile);
     }
 
@@ -127,7 +127,7 @@ public class ConnectionManager {
 
     // запрос стрцуктуры каталога сервера
     public void getServerPath() {
-        channel.writeAndFlush(new Command("", "getDirectory"));
+        channel.writeAndFlush(new Command("", Command.CommandAction.GET_DIRECTORY));
     }
 
     // запрос списка файла сервера

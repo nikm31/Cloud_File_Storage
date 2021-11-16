@@ -10,7 +10,7 @@ private final String message;
 
     @Override
     public String getType() {
-        return "status";
+        return "STATUS";
     }
 
 }

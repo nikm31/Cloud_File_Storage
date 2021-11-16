@@ -30,11 +30,10 @@ public class DatabaseAuthenticator implements AuthenticationProvider {
             ResultSet rs = preparedStatement.executeQuery();
             if (rs.next()) {
                 authentication.setRootDirectory(rs.getString("rootFolder"));
-                authentication.setAuthenticated(true);
+                authentication.setAuthStatus(Authentication.AuthStatus.AUTHENTICATED);
             } else {
-                authentication.setAuthenticated(false);
+                authentication.setAuthStatus(Authentication.AuthStatus.NOT_AUTHENTICATED);
             }
-            authentication.setAuthStatus(Authentication.AuthStatus.LOGIN);
             return authentication;
         } catch (Exception e) {
             log.error("Error statement", e);
@@ -50,6 +49,7 @@ public class DatabaseAuthenticator implements AuthenticationProvider {
             ResultSet rsCheck = psCheckUser.executeQuery();
             if (rsCheck.next()) {
                 log.error("Login is used by other user");
+                authentication.setAuthStatus(Authentication.AuthStatus.NOT_REGISTERED);
                 return authentication;
             }
         } catch (Exception e) {
@@ -57,6 +57,7 @@ public class DatabaseAuthenticator implements AuthenticationProvider {
         }
 
         log.debug("Trying to create entity in DB");
+
         try (PreparedStatement psRegister = connection.prepareStatement("insert into users (login, password, rootFolder) values (?,?,?)")) {
             String rootDir = login + "_rootDir";
             psRegister.setString(1, login);
@@ -64,8 +65,8 @@ public class DatabaseAuthenticator implements AuthenticationProvider {
             psRegister.setString(3, rootDir);
             psRegister.execute();
             authentication.setRootDirectory(rootDir);
-            authentication.setAuthenticated(true);
-            authentication.setAuthStatus(Authentication.AuthStatus.REGISTER);
+            authentication.setAuthStatus(Authentication.AuthStatus.REGISTERED);
+            authentication.setLogin(login);
             return authentication;
         } catch (Exception e) {
             log.error("Error statement", e);
@@ -82,9 +83,11 @@ public class DatabaseAuthenticator implements AuthenticationProvider {
             if (rs.next()) {
                 authentication.setRootDirectory(rs.getString("rootFolder"));
                 authentication.setAuthStatus(Authentication.AuthStatus.USER_FOUND);
+                authentication.setLogin(login);
                 log.debug("Login is found in DB. Sending rootFolder");
             } else {
-                authentication.setAuthStatus(Authentication.AuthStatus.USER_NOTFOUND);
+                authentication.setAuthStatus(Authentication.AuthStatus.USER_NOT_FOUND);
+                authentication.setLogin(login);
                 log.debug("Login is not found in DB. Sending status");
             }
             return authentication;

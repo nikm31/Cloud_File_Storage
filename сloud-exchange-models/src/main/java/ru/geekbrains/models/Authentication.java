@@ -9,32 +9,32 @@ public class Authentication implements Message {
         LOGIN,
         REGISTER,
         FIND_USER,
+        AUTHENTICATED,
+        NOT_AUTHENTICATED,
+        REGISTERED,
+        NOT_REGISTERED,
         USER_FOUND,
-        USER_NOTFOUND,
+        USER_NOT_FOUND,
     }
 
     private String login;
     private String password;
     private String rootDirectory;
-    private boolean isAuthenticated;
     private AuthStatus authStatus;
     private String fileName;
 
     public Authentication() {}
 
-
-
     public Authentication(String login, String password, String rootDirectory, boolean isAuthenticated, AuthStatus authStatus) {
         this.login = login;
         this.password = password;
         this.rootDirectory = rootDirectory;
-        this.isAuthenticated = isAuthenticated;
         this.authStatus = authStatus;
     }
 
     @Override
     public String getType() {
-        return "userInfo";
+        return "USER_INFO";
     }
 
     @Override

@@ -12,7 +12,7 @@ public class FileList implements Message {
 
     @Override
     public String getType() {
-        return "fileList";
+        return "FILE_LIST";
     }
 
     @Override

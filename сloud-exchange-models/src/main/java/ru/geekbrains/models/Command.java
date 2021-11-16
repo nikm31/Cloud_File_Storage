@@ -1,17 +1,26 @@
 package ru.geekbrains.models;
 
 public class Command implements Message{
-    private final String filePath;
-    private final String command;
 
-    public Command(String filePath, String command) {
+    public enum CommandAction {
+        COPY,
+        DELETE,
+        GET_DIRECTORY,
+        SEND_DIRECTORY,
+        CREATE_DIRECTORY,
+    }
+
+    private final String filePath;
+    private CommandAction commandAction;
+
+    public Command(String filePath, CommandAction commandAction) {
         this.filePath = filePath;
-        this.command = command;
+        this.commandAction = commandAction;
     }
 
     @Override
     public String getType() {
-        return command;
+        return commandAction.toString();
     }
 
     @Override

@@ -20,41 +20,66 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
     private final MainController mainController;
 
     @Override
+    // проверяем статусы сообщений от сервера
     protected void channelRead0(ChannelHandlerContext channel, Message message) {
+
         log.info("Получено {}", message);
 
-        if (message.getType().equals("status")) {
-            refreshStatusBar(message);
-        } else if (message.getType().equals("upload")) {
-            downloadFile(message, channel);
-        } else if (message.getType().equals("fileList")) {
-            refreshServerList(message);
-        } else if (message.getType().equals("getDirectory")) {
-            refreshServerPath(message);
-        } else if (message.getType().equals("userInfo")) {
+        if (message.getType().equals("USER_INFO")) {
             authorizeClient(message);
+        }
+        if (message.getType().equals("STATUS")) {
+            refreshStatusBar(message);
+        }
+        if (message.getType().equals("UPLOAD")) {
+            downloadFile(message, channel);
+        }
+        if (message.getType().equals("FILE_LIST")) {
+            refreshServerList(message);
+        }
+        if (message.getType().equals("SEND_DIRECTORY")) {
+            refreshServerPath(message);
         }
     }
 
+    // обрабатываем ответы сервера на авторизацию / регистрацию
     private void authorizeClient(Message message) {
+
         Authentication authInfoReceived = (Authentication) message;
 
-        if (authInfoReceived.getAuthStatus() == Authentication.AuthStatus.LOGIN & authInfoReceived.isAuthenticated()) {
-            // если статус запроса Login и сервер вернул, что авторизация пройдена показываем основную форму
+        if (authInfoReceived.getAuthStatus() == Authentication.AuthStatus.AUTHENTICATED) {
             mainController.setActiveWindows(true);
             mainController.enterClientDir();
-        } else if (authInfoReceived.getAuthStatus() == Authentication.AuthStatus.LOGIN & !authInfoReceived.isAuthenticated()) {
+            log.debug("Authentication successful");
+        } else if (authInfoReceived.getAuthStatus() == Authentication.AuthStatus.NOT_AUTHENTICATED) {
             Platform.runLater(() -> {
                 mainController.authInfoBar.setText("Не верный логин / пароль");
                 mainController.errorConnectionMessage();
             });
+            log.debug("Authentication failed");
+        }
+        if (authInfoReceived.getAuthStatus() == Authentication.AuthStatus.REGISTERED) {
+            Platform.runLater(() -> mainController.authInfoBar.setText("Успешная регистрация под ником: " + authInfoReceived.getLogin()));
+            log.debug("Registration is success");
+        } else if (authInfoReceived.getAuthStatus() == Authentication.AuthStatus.NOT_REGISTERED) {
+            Platform.runLater(() -> mainController.authInfoBar.setText("Данный логин уже используется в системе. В регистрации отказано."));
+            log.debug("Registration failed");
+        }
+        if (authInfoReceived.getAuthStatus() == Authentication.AuthStatus.USER_FOUND) {
+            Platform.runLater(() -> mainController.statusBar.setText("Файл успешно расшарен юзеру: " + authInfoReceived.getLogin()));
+            log.debug("Link is shared");
+        } else if (authInfoReceived.getAuthStatus() == Authentication.AuthStatus.USER_NOT_FOUND) {
+            Platform.runLater(() -> mainController.authInfoBar.setText("Такого юзера " + authInfoReceived.getLogin() + " нет в системе. Расшарить файл невозможно"));
+            log.debug("Link is not shared");
         }
     }
 
+    // обновляем путь дерриктории на сервере
     private void refreshServerPath(Message message) {
         mainController.serverPath.setText(message.getMessage().toString());
     }
 
+    // обновляем список файлов на сервере
     public void refreshServerList(Message message) {
         Platform.runLater(() -> {
             mainController.serverFileList.getItems().clear();
@@ -66,11 +91,12 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
         Platform.runLater(() -> mainController.refreshHostFiles(null));
     }
 
+    // выводим сообщение в статус бар
     public void refreshStatusBar(Message message) {
         Platform.runLater(() -> mainController.statusBar.setText((String) message.getMessage()));
     }
 
-    // огика скачивания файла с сервера
+    // логика скачивания файла с сервера
     public void downloadFile(Message message, ChannelHandlerContext channel) {
         try {
             File dir = new File(mainController.hostPath.getText());
