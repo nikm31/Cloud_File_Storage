@@ -82,13 +82,13 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             File fileToSend = Paths.get(String.valueOf(serverDir.toPath().resolve(dir))).toFile();
             long size = Files.size(fileToSend.toPath());
             long MB = 1048576L;
-            channel.writeAndFlush(new Command((float) size / MB + " Мб" , Command.CommandAction.FILE_SIZE));
+            channel.writeAndFlush(new Command((float) size / MB + " Мб", Command.CommandAction.FILE_SIZE));
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    //Переходим в новую директорию на сервере и возвращаем новый путь
+    // Переходим в новую директорию на сервере и возвращаем новый путь
     private void enterToFolder(Message message, File serverDir, ChannelHandlerContext channel) {
         String dir = message.getMessage().toString();
         File fileToSend = Paths.get(String.valueOf(serverDir.toPath().resolve(dir))).toFile();
@@ -138,17 +138,16 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             String link = authInfoToSend.getRootDirectory();
             log.debug("ready to create link");
 
-            //    Path target = Paths.get("server-file-storage" + target + file);
-            //    Path link = Paths.get("C:\\IMG_6168.jpg");
+            Path targetLink = Paths.get(target, file).toAbsolutePath();
+            Path linkOut = Paths.get("server-file-storage", link, file).toAbsolutePath();
 
-//            try {
-//                Files.createSymbolicLink(link, target);
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
+            try {
+                Files.createSymbolicLink(linkOut, targetLink);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
-
-            // channel.writeAndFlush(authInfoToSend);
+            channel.writeAndFlush(new Status("Файл расшарен"));
         }
     }
 

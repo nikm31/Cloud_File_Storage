@@ -279,7 +279,7 @@ public class MainController implements Initializable {
 
     // создаем символическую ссылку другому юзеру на выбранный файл
     public void shareFileWithUser() {
-        connectionManager.sendReqToShareFile(userLoginToShare.getText(), getSelectedHostItem());
+        connectionManager.sendReqToShareFile(userLoginToShare.getText(), getSelectedServerItem());
     }
 
     public void serverCreateNewFolder() {

@@ -80,6 +80,7 @@ public class ConnectionManager {
     public void sendReqToShareFile(String login, String fileName){
         userInfoMessage = new Authentication(login, "", "", false, Authentication.AuthStatus.FIND_USER);
         userInfoMessage.setFileName(fileName);
+        userInfoMessage.setRootDirectory(mainController.serverPath.getText());
         channel.writeAndFlush(userInfoMessage);
     }
 
