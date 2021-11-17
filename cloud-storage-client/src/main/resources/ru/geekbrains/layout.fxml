@@ -23,7 +23,8 @@
         <Label prefHeight="25.0" prefWidth="594.0" text="LOGIN" />
         <TextField fx:id="loginField" />
         <Label prefHeight="25.0" prefWidth="594.0" text="PASSWORD" />
-        <TextField fx:id="passwordField" />
+
+        <PasswordField fx:id="passwordField"/>
         <HBox prefHeight="100.0" prefWidth="200.0">
             <children>
                 <Button alignment="CENTER" contentDisplay="CENTER" defaultButton="true" mnemonicParsing="false" onAction="#connectToServer" prefHeight="47.0" prefWidth="759.0" text="Login" textAlignment="CENTER">
@@ -129,7 +130,7 @@
                </children>
             </VBox>
             </VBox>
-            <ListView fx:id="serverFileList" minWidth="280.0" prefWidth="280" HBox.hgrow="ALWAYS" onMouseClicked="#enterToServerDir"/>
+            <ListView fx:id="serverFileList" minWidth="280.0" onMouseClicked="#enterToServerDir" prefWidth="280" HBox.hgrow="ALWAYS" />
             <HBox prefHeight="100.0" prefWidth="200.0" />
         </HBox>
 

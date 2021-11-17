@@ -2,10 +2,7 @@ package ru.geekbrains;
 
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import lombok.SneakyThrows;
@@ -39,7 +36,7 @@ public class MainController implements Initializable {
     @FXML
     TextField loginField;
     @FXML
-    TextField passwordField;
+    PasswordField passwordField;
     @FXML
     VBox authPanel;
     @FXML
