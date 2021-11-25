@@ -6,48 +6,52 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
 
-<VBox prefHeight="451.0" prefWidth="780.0" xmlns="http://javafx.com/javafx/11.0.2" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ru.geekbrains.MainController">
+<VBox prefHeight="451.0" prefWidth="780.0" xmlns="http://javafx.com/javafx/11.0.2" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="ru.geekbrains.MainController">
 
     <!-- Окно авторизации / регистрации -->
     <VBox fx:id="authPanel" prefHeight="451.0" prefWidth="780.0">
-        <Label fx:id="authInfoBar" prefHeight="36.0" prefWidth="780.0" text="Authentication" textAlignment="CENTER" VBox.vgrow="ALWAYS">
+        <Label fx:id="authInfoBar" prefHeight="36.0" prefWidth="780.0" text="Authentication" textAlignment="CENTER"
+               VBox.vgrow="ALWAYS">
             <font>
-                <Font name="System Bold" size="16.0" />
+                <Font name="System Bold" size="16.0"/>
             </font>
             <VBox.margin>
-                <Insets bottom="70.0" />
+                <Insets bottom="70.0"/>
             </VBox.margin>
         </Label>
-        <Label prefHeight="25.0" prefWidth="594.0" text="SERVER ADDRESS" />
-        <TextField fx:id="connectAddressField" promptText="127.0.0.1:8189" text="127.0.0.1:8189" VBox.vgrow="ALWAYS" />
-        <Label prefHeight="25.0" prefWidth="594.0" text="LOGIN" />
-        <TextField fx:id="loginField" />
-        <Label prefHeight="25.0" prefWidth="594.0" text="PASSWORD" />
+        <Label prefHeight="25.0" prefWidth="594.0" text="SERVER ADDRESS"/>
+        <TextField fx:id="connectAddressField" promptText="127.0.0.1:8189" text="127.0.0.1:8189" VBox.vgrow="ALWAYS"/>
+        <Label prefHeight="25.0" prefWidth="594.0" text="LOGIN"/>
+        <TextField fx:id="loginField"/>
+        <Label prefHeight="25.0" prefWidth="594.0" text="PASSWORD"/>
 
-        <PasswordField fx:id="passwordField"/>
+        <PasswordField fx:id="passwordField" style=": 15px;"/>
         <HBox prefHeight="100.0" prefWidth="200.0">
-            <children>
-                <Button alignment="CENTER" contentDisplay="CENTER" defaultButton="true" mnemonicParsing="false" onAction="#connectToServer" prefHeight="47.0" prefWidth="759.0" text="Login" textAlignment="CENTER">
-                    <font>
-                        <Font name="System Bold" size="16.0" />
-                    </font>
-                </Button>
-            </children>
 
-            <Button alignment="CENTER" contentDisplay="CENTER" defaultButton="true" layoutX="20.0" layoutY="267.0" mnemonicParsing="false" onAction="#registerUser" prefHeight="47.0" prefWidth="759.0" text="Register" textAlignment="CENTER">
+            <Button alignment="CENTER" contentDisplay="CENTER" defaultButton="true" mnemonicParsing="false"
+                    onAction="#connectToServer" prefHeight="47.0" prefWidth="759.0" text="Login" textAlignment="CENTER">
                 <font>
-                    <Font name="System Bold" size="16.0" />
+                    <Font name="System Bold" size="16.0"/>
                 </font>
-            <cursor>
-               <Cursor fx:constant="DEFAULT" />
-            </cursor>
+            </Button>
+
+            <Button alignment="CENTER" contentDisplay="CENTER" defaultButton="true" layoutX="20.0" layoutY="267.0"
+                    mnemonicParsing="false" onAction="#registerUser" prefHeight="47.0" prefWidth="759.0" text="Register"
+                    textAlignment="CENTER">
+                <font>
+                    <Font name="System Bold" size="16.0"/>
+                </font>
+                <cursor>
+                    <Cursor fx:constant="DEFAULT"/>
+                </cursor>
             </Button>
             <VBox.margin>
-                <Insets top="20.0" />
+                <Insets top="20.0"/>
             </VBox.margin>
         </HBox>
         <padding>
-            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/>
         </padding>
     </VBox>
 
@@ -56,27 +60,20 @@
 
         <!-- Меню -->
         <MenuBar>
-            <menus>
-                <Menu mnemonicParsing="false" text="File">
-                    <items>
-                        <MenuItem mnemonicParsing="false" onAction="#closeConnection" text="Close" />
-                    </items>
-                </Menu>
-                <Menu mnemonicParsing="false" text="Host">
-                    <items>
-                        <MenuItem mnemonicParsing="false" onAction="#hostCopyFile" text="Copy" />
-                        <MenuItem mnemonicParsing="false" onAction="#hostDeleteFile" text="Delete" />
-                        <MenuItem mnemonicParsing="false" onAction="#hostCreateNewFolder" text="New Folder" />
-                    </items>
-                </Menu>
-                <Menu mnemonicParsing="false" text="Server">
-                    <items>
-                        <MenuItem mnemonicParsing="false" onAction="#serverCopyFile" text="Copy" />
-                        <MenuItem mnemonicParsing="false" onAction="#serverDeleteFile" text="Delete" />
-                        <MenuItem mnemonicParsing="false" onAction="#serverCreateNewFolder" text="New Folder" />
-                    </items>
-                </Menu>
-            </menus>
+            <Menu mnemonicParsing="false" text="File">
+                <MenuItem mnemonicParsing="false" onAction="#closeConnection" text="Close"/>
+            </Menu>
+            <Menu mnemonicParsing="false" text="Host">
+                <MenuItem mnemonicParsing="false" onAction="#hostCopyFile" text="Copy"/>
+                <MenuItem mnemonicParsing="false" onAction="#hostDeleteFile" text="Delete"/>
+                <MenuItem mnemonicParsing="false" onAction="#hostCreateNewFolder" text="New Folder"/>
+                <MenuItem mnemonicParsing="false" onAction="#hostFoldersTotalSize" text="Folders Total Size"/>
+            </Menu>
+            <Menu mnemonicParsing="false" text="Server">
+                <MenuItem mnemonicParsing="false" onAction="#serverCopyFile" text="Copy"/>
+                <MenuItem mnemonicParsing="false" onAction="#serverDeleteFile" text="Delete"/>
+                <MenuItem mnemonicParsing="false" onAction="#serverCreateNewFolder" text="New Folder"/>
+            </Menu>
         </MenuBar>
 
         <!-- Форма навигации по папкам и кнопки возврата -->
@@ -84,54 +81,59 @@
 
             <TextField fx:id="hostPath" promptText="hostPath" HBox.hgrow="ALWAYS">
                 <HBox.margin>
-                    <Insets right="10.0" />
+                    <Insets right="10.0"/>
                 </HBox.margin>
             </TextField>
-            <Button mnemonicParsing="false" onMouseClicked="#backHostDir" text="Back" />
+            <Button mnemonicParsing="false" onMouseClicked="#backHostDir" text="Back"/>
             <TextField fx:id="serverPath" layoutX="10.0" layoutY="10.0" promptText="serverPath" HBox.hgrow="ALWAYS">
                 <HBox.margin>
-                    <Insets left="10.0" right="10.0" />
+                    <Insets left="10.0" right="10.0"/>
                 </HBox.margin>
             </TextField>
-            <Button mnemonicParsing="false" onMouseClicked="#backServerDir" text="Back" />
+            <Button mnemonicParsing="false" onMouseClicked="#backServerDir" text="Back"/>
 
             <VBox.margin>
-                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/>
             </VBox.margin>
         </HBox>
 
         <!-- Списки файлов и кнопки скачать / загрузить / информация о размере файла -->
         <HBox alignment="TOP_CENTER" prefHeight="440.0" prefWidth="780.0" VBox.vgrow="NEVER">
-            <ListView fx:id="hostFileList" minWidth="280.0" onMouseClicked="#enterToDir" prefHeight="400.0" prefWidth="280" HBox.hgrow="ALWAYS">
+            <ListView fx:id="hostFileList" minWidth="280.0" onMouseClicked="#enterToDir" prefHeight="400.0"
+                      prefWidth="280" HBox.hgrow="ALWAYS">
                 <HBox.margin>
-                    <Insets left="10.0" />
+                    <Insets left="10.0"/>
                 </HBox.margin>
             </ListView>
             <VBox alignment="CENTER" minWidth="200" prefWidth="200" spacing="20.0" HBox.hgrow="ALWAYS">
-            <VBox alignment="CENTER" prefHeight="200.0" prefWidth="100.0" spacing="20.0" VBox.vgrow="ALWAYS">
-               <children>
-      
-                      <Button mnemonicParsing="false" onAction="#downloadFromServer" prefHeight="80.0" prefWidth="117.0" text="&lt; Download" VBox.vgrow="ALWAYS" />
-                      <Button mnemonicParsing="false" onAction="#uploadToServer" prefHeight="80.0" prefWidth="115.0" text="Upload &gt;" VBox.vgrow="ALWAYS" />
-               </children>
-               <padding>
-                  <Insets top="10.0" />
-               </padding>
+                <VBox alignment="CENTER" prefHeight="200.0" prefWidth="100.0" spacing="20.0" VBox.vgrow="ALWAYS">
+
+
+                    <Button mnemonicParsing="false" onAction="#downloadFromServer" prefHeight="80.0" prefWidth="117.0"
+                            text="&lt; Download" VBox.vgrow="ALWAYS"/>
+                    <Button mnemonicParsing="false" onAction="#uploadToServer" prefHeight="80.0" prefWidth="115.0"
+                            text="Upload &gt;" VBox.vgrow="ALWAYS"/>
+
+                    <padding>
+                        <Insets top="10.0"/>
+                    </padding>
+                </VBox>
+                <VBox alignment="BOTTOM_CENTER" prefHeight="200.0" prefWidth="100.0">
+
+                    <Label alignment="BOTTOM_CENTER" contentDisplay="BOTTOM" text="Enter user to share file"/>
+                    <TextField fx:id="userLoginToShare">
+                        <VBox.margin>
+                            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/>
+                        </VBox.margin>
+                    </TextField>
+                    <Button contentDisplay="CENTER" mnemonicParsing="false" onMouseClicked="#shareFileWithUser"
+                            text="Share"/>
+
+                </VBox>
             </VBox>
-            <VBox alignment="BOTTOM_CENTER" prefHeight="200.0" prefWidth="100.0">
-               <children>
-                  <Label alignment="BOTTOM_CENTER" contentDisplay="BOTTOM" text="Enter user to share file" />
-                  <TextField fx:id="userLoginToShare">
-                     <VBox.margin>
-                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                     </VBox.margin>
-                  </TextField>
-                  <Button contentDisplay="CENTER" mnemonicParsing="false" onMouseClicked="#shareFileWithUser" text="Share" />
-               </children>
-            </VBox>
-            </VBox>
-            <ListView fx:id="serverFileList" minWidth="280.0" onMouseClicked="#enterToServerDir" prefWidth="280" HBox.hgrow="ALWAYS" />
-            <HBox prefHeight="100.0" prefWidth="200.0" />
+            <ListView fx:id="serverFileList" minWidth="280.0" onMouseClicked="#enterToServerDir" prefWidth="280"
+                      HBox.hgrow="ALWAYS"/>
+            <HBox prefHeight="100.0" prefWidth="200.0"/>
         </HBox>
 
         <!-- формы поиска файлов -->
@@ -139,24 +141,26 @@
 
             <TextField fx:id="hostSearchFile" onAction="#searchOnHost" promptText="hostSearchFile" HBox.hgrow="ALWAYS">
                 <HBox.margin>
-                    <Insets right="10.0" />
+                    <Insets right="10.0"/>
                 </HBox.margin>
             </TextField>
-            <TextField layoutX="10.0" layoutY="10.0" onAction="#searchOnServer" promptText="serverSearchFile" HBox.hgrow="ALWAYS">
+            <TextField layoutX="10.0" layoutY="10.0" onAction="#searchOnServer" promptText="serverSearchFile"
+                       HBox.hgrow="ALWAYS">
                 <HBox.margin>
-                    <Insets left="10.0" />
+                    <Insets left="10.0"/>
                 </HBox.margin>
             </TextField>
 
             <VBox.margin>
-                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/>
             </VBox.margin>
         </HBox>
 
         <!-- Статус бар -->
-        <Label fx:id="statusBar" alignment="BOTTOM_LEFT" prefHeight="29.0" prefWidth="780" text="Status bar" VBox.vgrow="ALWAYS">
+        <Label fx:id="statusBar" alignment="BOTTOM_LEFT" prefHeight="29.0" prefWidth="780" text="Status bar"
+               VBox.vgrow="ALWAYS">
             <VBox.margin>
-                <Insets left="10.0" />
+                <Insets left="10.0"/>
             </VBox.margin>
         </Label>
 

@@ -12,6 +12,8 @@ import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import ru.geekbrains.authentication.DbProvider;
+import ru.geekbrains.authentication.DbHandler;
 
 @Slf4j
 public class Server {
@@ -20,7 +22,7 @@ public class Server {
     public Server() {
         EventLoopGroup auth = new NioEventLoopGroup(1);
         EventLoopGroup worker = new NioEventLoopGroup();
-
+        DbProvider dbProvider = new DbHandler();
         try {
             ServerBootstrap bootstrap = new ServerBootstrap();
             bootstrap.channel(NioServerSocketChannel.class)
@@ -31,18 +33,19 @@ public class Server {
                             channel.pipeline().addLast(
                                     new ObjectDecoder(1024 * 1024 * 1024, ClassResolvers.cacheDisabled(null)),
                                     new ObjectEncoder(),
-                                    new ServerHandler()
+                                    new ServerHandler(dbProvider)
                             );
                         }
                     });
             ChannelFuture future = bootstrap.bind(8189).sync();
-            log.debug("Server started...");
+            log.info("Server started...");
             future.channel().closeFuture().sync();
         } catch (Exception e) {
-            log.error("e", e);
+            log.error("Server Error ", e);
         } finally {
             auth.shutdownGracefully();
             worker.shutdownGracefully();
+            dbProvider.disconnect();
             log.debug("Server stopped");
         }
     }

@@ -24,6 +24,7 @@ public class MainController implements Initializable {
 
     private Path clientDir;
     private ConnectionManager connectionManager;
+    private long userFolderSize;
 
     @FXML
     Label statusBar;
@@ -54,11 +55,16 @@ public class MainController implements Initializable {
 
     // отображаем размер файла в статус баре при клике на файл списка клиента
     @SneakyThrows
-    void setFileSize() {
+    private void setFileSize() {
         File fileToSend = Paths.get(clientDir.resolve(getSelectedHostItem()).toString()).toFile();
         long size = Files.size(fileToSend.toPath());
+        setSizeStatusBar(size);
+    }
+
+    // выводим размер файла(ов) в статус бар
+    public void setSizeStatusBar(long size) {
         long MB = 1048576L;
-        statusBar.setText("Размер файла " + getSelectedHostItem() + ": " + (float) size / MB + " Мб");
+        statusBar.setText("Размер файла " + ": " + (float) size / MB + " Мб");
     }
 
     // отображение и скрытие форм приложения
@@ -188,7 +194,6 @@ public class MainController implements Initializable {
 
     public void closeConnection() {
         setActiveWindows(false);
-        connectionManager.stop();
     }
 
     // возвращает выбранный элемент в списке хоста
@@ -227,9 +232,27 @@ public class MainController implements Initializable {
         refreshHostFiles(null);
     }
 
-
+    // фильтр по файлам
     public void searchOnHost() {
         refreshHostFiles(hostSearchFile.getText());
+    }
+
+    // сканируем вложенные папки на файлы и инкрементируем размер
+    private long getFilesSize(File rootFile) {
+        if (rootFile.isDirectory()) {
+            log.info("Scanning folder {}", rootFile.getAbsolutePath());
+            File[] directoryFiles = rootFile.listFiles();
+            if (directoryFiles != null) {
+                for (File file : directoryFiles) {
+                    if (file.isDirectory()) {
+                        getFilesSize(file);
+                    } else {
+                        userFolderSize += file.length();
+                    }
+                }
+            }
+        }
+        return userFolderSize;
     }
 
     public void searchOnServer() {
@@ -284,4 +307,7 @@ public class MainController implements Initializable {
     }
 
 
+    public void hostFoldersTotalSize() {
+        setSizeStatusBar(getFilesSize(Paths.get(hostPath.getText()).toFile()));
+    }
 }

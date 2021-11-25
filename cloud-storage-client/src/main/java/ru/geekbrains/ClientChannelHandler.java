@@ -5,10 +5,8 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import javafx.application.Platform;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import ru.geekbrains.models.Authentication;
-import ru.geekbrains.models.GenericFile;
-import ru.geekbrains.models.Message;
-import ru.geekbrains.models.Status;
+import ru.geekbrains.models.*;
+import ru.geekbrains.models.File.GenericFile;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -22,68 +20,94 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
     @Override
     // проверяем статусы сообщений от сервера
     protected void channelRead0(ChannelHandlerContext channel, Message message) {
+        log.info("Получена команда {}", message.getType());
+        switch (message.getType()) {
+            case AUTHENTICATED:
+                isAuthTrue();
+                break;
+            case NOT_AUTHENTICATED:
+                isAuthFalse();
+                break;
+            case REGISTERED:
+                isRegisteredTrue(message);
+                break;
+            case NOT_REGISTERED:
+                isRegisteredFalse();
+                break;
+            case USER_FOUND:
+                isUserFoundTrue(message);
+                break;
+            case USER_NOT_FOUND:
+                isUserFoundFalse(message);
+                break;
+            case STATUS:
+                refreshStatusBar(message);
+                break;
+            case FILE_SIZE:
+                refreshStatusBarFilesSize(message);
+                break;
+            case UPLOAD:
+                downloadFile(message);
+                channel.flush();
+                break;
+            case FILE_LIST:
+                refreshServerList(message);
+                break;
+            case SEND_CURRENT_PATH:
+                refreshServerPath(message);
+                break;
+            case CURRENT_PATH:
+                updateServerPath(message);
+                break;
+        }
+    }
 
-        log.info("Получено {}", message);
-
-        if (message.getType().equals("USER_INFO")) {
-            authorizeClient(message);
-        }
-        if (message.getType().equals("STATUS") || message.getType().equals("FILE_SIZE")) {
-            refreshStatusBar(message);
-        }
-        if (message.getType().equals("UPLOAD")) {
-            downloadFile(message, channel);
-        }
-        if (message.getType().equals("FILE_LIST")) {
-            refreshServerList(message);
-        }
-        if (message.getType().equals("SEND_DIRECTORY")) {
-            refreshServerPath(message);
-        }
-        if (message.getType().equals("UPDATE_SERVER_PATH")) {
-            updateServerPath(message);
-        }
-
+    // обновление размера файла на статус баре
+    private void refreshStatusBarFilesSize(Message message) {
+        Platform.runLater(() -> mainController.setSizeStatusBar(Long.valueOf((String) message.getMessage())));
     }
 
     // обновляем путь на форме
     private void updateServerPath(Message message) {
         Platform.runLater(() -> {
-        mainController.serverPath.clear();
-        mainController.serverPath.setText(message.getMessage().toString());
+            mainController.serverPath.clear();
+            mainController.serverPath.setText(message.getMessage().toString());
         });
     }
 
-    // обрабатываем ответы сервера на авторизацию / регистрацию
-    private void authorizeClient(Message message) {
+    private void isAuthTrue() {
+        mainController.setActiveWindows(true);
+        mainController.enterClientDir();
+        log.info("Authentication successful");
+    }
 
-        Authentication authInfoReceived = (Authentication) message;
+    private void isAuthFalse() {
+        Platform.runLater(() -> {
+            mainController.authInfoBar.setText("Не верный логин / пароль");
+            mainController.errorConnectionMessage();
+        });
+        log.debug("Authentication failed");
+    }
 
-        if (authInfoReceived.getAuthStatus() == Authentication.AuthStatus.AUTHENTICATED) {
-            mainController.setActiveWindows(true);
-            mainController.enterClientDir();
-            log.debug("Authentication successful");
-        } else if (authInfoReceived.getAuthStatus() == Authentication.AuthStatus.NOT_AUTHENTICATED) {
-            Platform.runLater(() -> {
-                mainController.authInfoBar.setText("Не верный логин / пароль");
-                mainController.errorConnectionMessage();
-            });
-            log.debug("Authentication failed");
-        }
-        if (authInfoReceived.getAuthStatus() == Authentication.AuthStatus.REGISTERED) {
-            Platform.runLater(() -> mainController.authInfoBar.setText("Успешная регистрация под ником: " + authInfoReceived.getLogin()));
-            log.debug("Registration is success");
-        } else if (authInfoReceived.getAuthStatus() == Authentication.AuthStatus.NOT_REGISTERED) {
-            Platform.runLater(() -> mainController.authInfoBar.setText("Данный логин уже используется в системе. В регистрации отказано."));
-            log.debug("Registration failed");
-        }
-        if (authInfoReceived.getAuthStatus() == Authentication.AuthStatus.USER_FOUND) {
-            Platform.runLater(() -> mainController.statusBar.setText("Файл успешно расшарен юзеру: " + authInfoReceived.getLogin()));
-            log.debug("Link is shared");
-        } else if (authInfoReceived.getAuthStatus() == Authentication.AuthStatus.USER_NOT_FOUND) {
-            Platform.runLater(() -> mainController.authInfoBar.setText("Такого юзера " + authInfoReceived.getLogin() + " нет в системе. Расшарить файл невозможно"));
-            log.debug("Link is not shared");
-        }
+    private void isRegisteredTrue(Message message) {
+        Platform.runLater(() -> mainController.authInfoBar.setText("Успешная регистрация под ником: " + message.getMessage())); // getLogin()
+        log.info("Registration is success");
+    }
+
+    private void isRegisteredFalse() {
+        Platform.runLater(() -> mainController.authInfoBar.setText("Данный логин уже используется в системе. В регистрации отказано."));
+        log.debug("Registration failed");
+    }
+
+    private void isUserFoundTrue(Message message) {
+        Platform.runLater(() -> mainController.statusBar.setText("Файл успешно расшарен юзеру: " + message.getMessage()));//.getLogin()
+        log.info("Link is shared");
+    }
+
+
+    private void isUserFoundFalse(Message message) {
+        Platform.runLater(() -> mainController.authInfoBar.setText("Такого юзера " + message.getMessage() + " нет в системе. Расшарить файл невозможно"));//.getLogin()
+        log.debug("Link is not shared");
     }
 
     // обновляем путь дерриктории на сервере
@@ -109,16 +133,16 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
     }
 
     // логика скачивания файла с сервера
-    public void downloadFile(Message message, ChannelHandlerContext channel) {
+    public void downloadFile(Message message) {
         try {
             File dir = new File(mainController.hostPath.getText());
             GenericFile fileSource = (GenericFile) message.getMessage();
-            File fileToCreate = new File(dir, fileSource.getFilename());
+            File fileToCreate = new File(dir, fileSource.getFileName());
             FileOutputStream fos = new FileOutputStream(fileToCreate);
             fos.write(fileSource.getContent());
             fos.close();
             refreshHostList();
-            channel.writeAndFlush(new Status("ok"));
+            log.info("File is downloaded");
         } catch (Exception e) {
             log.error("Write error file to host", e);
         }
