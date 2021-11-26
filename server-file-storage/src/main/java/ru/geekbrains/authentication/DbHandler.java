@@ -1,6 +1,7 @@
 package ru.geekbrains.authentication;
 
 import lombok.extern.slf4j.Slf4j;
+import org.mindrot.jbcrypt.BCrypt;
 import ru.geekbrains.models.Actions.Authentication;
 import ru.geekbrains.models.Commands;
 import java.sql.*;
@@ -24,6 +25,14 @@ public class DbHandler implements DbProvider {
         }
     }
 
+    private String encrypt(String password) {
+        return BCrypt.hashpw(password, BCrypt.gensalt(12));
+    }
+
+    private boolean checkPass(String inputPass, String hashPass) {
+        return BCrypt.checkpw(inputPass, hashPass);
+    }
+
     public void disconnect() {
         try {
             connection.close();
@@ -34,14 +43,15 @@ public class DbHandler implements DbProvider {
     }
 
     @Override
-    public Authentication userAuthentication(String login, String password) {
-        try (PreparedStatement preparedStatement = connection.prepareStatement("select rootFolder from users where login = ? and password = ?")) {
+    public Authentication userAuthentication(String login, String inputPass) {
+        try (PreparedStatement preparedStatement = connection.prepareStatement("select password, rootFolder from users where login = ?")) {
             preparedStatement.setString(1, login);
-            preparedStatement.setString(2, password);
             ResultSet rs = preparedStatement.executeQuery();
             if (rs.next()) {
-                authentication.setRootDirectory(rs.getString("rootFolder"));
-                authentication.setCommand(Commands.AUTHENTICATED);
+                if (checkPass(inputPass, rs.getString("password"))) {
+                    authentication.setRootDirectory(rs.getString("rootFolder"));
+                    authentication.setCommand(Commands.AUTHENTICATED);
+                }
             } else {
                 authentication.setCommand(Commands.NOT_AUTHENTICATED);
             }
@@ -61,6 +71,7 @@ public class DbHandler implements DbProvider {
             if (rsCheck.next()) {
                 log.debug("Login is used by other user");
                 authentication.setCommand(Commands.NOT_REGISTERED);
+                authentication.setLogin(login);
                 return authentication;
             }
         } catch (Exception e) {
@@ -72,7 +83,7 @@ public class DbHandler implements DbProvider {
         try (PreparedStatement psRegister = connection.prepareStatement("insert into users (login, password, rootFolder) values (?,?,?)")) {
             String rootDir = login + "_rootDir";
             psRegister.setString(1, login);
-            psRegister.setString(2, password);
+            psRegister.setString(2, encrypt(password));
             psRegister.setString(3, rootDir);
             psRegister.execute();
             authentication.setRootDirectory(rootDir);
@@ -114,7 +125,7 @@ public class DbHandler implements DbProvider {
             String sql = "CREATE TABLE IF NOT EXISTS users (\n" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,\n" +
                     "login VARCHAR (30) NOT NULL UNIQUE,\n" +
-                    "password VARCHAR (30) NOT NULL,\n" +
+                    "password STRING NOT NULL,\n" +
                     "rootFolder VARCHAR (30) NOT NULL,\n" +
                     "totalSize  INT,\n" +
                     "isWritable BOOLEAN DEFAULT (true)\n" +

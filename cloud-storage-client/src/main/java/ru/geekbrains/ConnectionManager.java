@@ -42,17 +42,17 @@ public class ConnectionManager {
 
     // создаем подключение и подключаемся к серверу при нажатии Login
     void start() {
-        workGroup = new NioEventLoopGroup();
-        try {
-            Bootstrap bootstrap = new Bootstrap().group(workGroup)
-                    .channel(NioSocketChannel.class)
-                    .handler(new ConnectionInitializer(mainController));
-            ChannelFuture f = bootstrap.connect(serverAddress, serverPort);
-            channel = f.sync().channel();
-        } catch (Exception e) {
-            log.error("Cant start server", e);
-        }
-        log.debug("Connection with Server is active");
+            workGroup = new NioEventLoopGroup(3);
+            try {
+                Bootstrap bootstrap = new Bootstrap().group(workGroup)
+                        .channel(NioSocketChannel.class)
+                        .handler(new ConnectionInitializer(mainController));
+                ChannelFuture f = bootstrap.connect(serverAddress, serverPort);
+                channel = f.sync().channel();
+            } catch (Exception e) {
+                log.error("Cant start server", e);
+            }
+            log.debug("Connection with Server is active");
     }
 
     @SneakyThrows

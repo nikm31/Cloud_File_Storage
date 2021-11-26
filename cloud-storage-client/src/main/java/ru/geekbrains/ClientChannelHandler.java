@@ -6,6 +6,7 @@ import javafx.application.Platform;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import ru.geekbrains.models.*;
+import ru.geekbrains.models.Actions.Authentication;
 import ru.geekbrains.models.File.GenericFile;
 
 import java.io.File;
@@ -32,7 +33,7 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
                 isRegisteredTrue(message);
                 break;
             case NOT_REGISTERED:
-                isRegisteredFalse();
+                isRegisteredFalse(message);
                 break;
             case USER_FOUND:
                 isUserFoundTrue(message);
@@ -90,12 +91,14 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
     }
 
     private void isRegisteredTrue(Message message) {
-        Platform.runLater(() -> mainController.authInfoBar.setText("Успешная регистрация под ником: " + message.getMessage())); // getLogin()
+        Authentication authInfo = (Authentication) message.getMessage();
+        Platform.runLater(() -> mainController.authInfoBar.setText("Успешная регистрация под логином: " + authInfo.getLogin())); // getLogin()
         log.info("Registration is success");
     }
 
-    private void isRegisteredFalse() {
-        Platform.runLater(() -> mainController.authInfoBar.setText("Данный логин уже используется в системе. В регистрации отказано."));
+    private void isRegisteredFalse(Message message) {
+        Authentication authInfo = (Authentication) message.getMessage();
+        Platform.runLater(() -> mainController.authInfoBar.setText("Данный логин: " + authInfo.getLogin() +  " уже используется в системе. В регистрации отказано."));
         log.debug("Registration failed");
     }
 

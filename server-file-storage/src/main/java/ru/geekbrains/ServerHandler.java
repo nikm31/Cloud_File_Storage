@@ -2,15 +2,17 @@ package ru.geekbrains;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import ru.geekbrains.authentication.DbProvider;
-import ru.geekbrains.models.*;
-import ru.geekbrains.models.Actions.Authentication;
 import ru.geekbrains.models.Actions.Action;
+import ru.geekbrains.models.Actions.Authentication;
 import ru.geekbrains.models.Actions.FileList;
 import ru.geekbrains.models.Actions.Status;
+import ru.geekbrains.models.Commands;
 import ru.geekbrains.models.File.CloudFile;
 import ru.geekbrains.models.File.GenericFile;
+import ru.geekbrains.models.Message;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -142,12 +144,20 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         channel.writeAndFlush(authInfoToSend);
     }
 
+    @SneakyThrows
     // регистрируем пользователя
     private void registerUser(ChannelHandlerContext channel, Message message) {
         authInfoReceived = (Authentication) message;
         authInfoToSend = dbProvider.userRegistration(authInfoReceived.getLogin(), authInfoReceived.getPassword());
-        log.info("User registration status {}", authInfoToSend.getType());
+
+        switch (authInfoToSend.getCommand()) {
+            case REGISTERED:
+                Files.createDirectory(Paths.get("server-file-storage" + File.separator + authInfoToSend.getRootDirectory()));
+                break;
+        }
+
         channel.writeAndFlush(authInfoToSend);
+        log.info("User registration status {}", authInfoToSend.getType());
     }
 
     // шаринг файла другому юзеру
