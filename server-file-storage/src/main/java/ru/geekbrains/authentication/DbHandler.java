@@ -1,9 +1,11 @@
 package ru.geekbrains.authentication;
 
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.mindrot.jbcrypt.BCrypt;
 import ru.geekbrains.models.Actions.Authentication;
 import ru.geekbrains.models.Commands;
+
 import java.sql.*;
 
 @Slf4j
@@ -29,8 +31,15 @@ public class DbHandler implements DbProvider {
         return BCrypt.hashpw(password, BCrypt.gensalt(12));
     }
 
-    private boolean checkPass(String inputPass, String hashPass) {
-        return BCrypt.checkpw(inputPass, hashPass);
+    @SneakyThrows
+    private void checkPass(String inputPass, String hashPass, ResultSet rs) {
+        if (BCrypt.checkpw(inputPass, hashPass)) {
+            authentication.setRootDirectory(rs.getString("rootFolder"));
+            authentication.setCommand(Commands.AUTHENTICATED);
+            log.info("Login or password is accepted");
+        } else {
+            authentication.setCommand(Commands.NOT_AUTHENTICATED);
+        }
     }
 
     public void disconnect() {
@@ -42,24 +51,21 @@ public class DbHandler implements DbProvider {
         }
     }
 
+
     @Override
     public Authentication userAuthentication(String login, String inputPass) {
         try (PreparedStatement preparedStatement = connection.prepareStatement("select password, rootFolder from users where login = ?")) {
             preparedStatement.setString(1, login);
             ResultSet rs = preparedStatement.executeQuery();
             if (rs.next()) {
-                if (checkPass(inputPass, rs.getString("password"))) {
-                    authentication.setRootDirectory(rs.getString("rootFolder"));
-                    authentication.setCommand(Commands.AUTHENTICATED);
-                }
+                checkPass(inputPass, rs.getString("password"), rs);
             } else {
                 authentication.setCommand(Commands.NOT_AUTHENTICATED);
             }
-            return authentication;
         } catch (Exception e) {
             log.error("Error statement", e);
         }
-        log.info("Login or password is accepted");
+        authentication.setLogin(login);
         return authentication;
     }
 

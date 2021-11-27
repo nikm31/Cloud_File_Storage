@@ -22,5 +22,7 @@ public enum Commands {
     CURRENT_PATH,
     FILE_SIZE,
     FILE_LIST,
-    STATUS
+    STATUS,
+    PART_FILE,
+    PART_FILE_INFO
 }

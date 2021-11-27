@@ -15,7 +15,7 @@ public class ConnectionInitializer extends ChannelInitializer<SocketChannel> {
     @Override
     protected void initChannel(SocketChannel socketChannel) {
         ChannelPipeline pipeline = socketChannel.pipeline();
-        pipeline.addLast(new ObjectDecoder(1073741824, ClassResolvers.cacheDisabled(null)));
+        pipeline.addLast(new ObjectDecoder(1024*1024*1024, ClassResolvers.cacheDisabled(null)));
         pipeline.addLast("encoder", new ObjectEncoder());
         pipeline.addLast(new ClientChannelHandler(mainController));
     }

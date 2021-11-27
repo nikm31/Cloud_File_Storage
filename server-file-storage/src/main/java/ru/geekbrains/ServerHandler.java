@@ -1,18 +1,18 @@
 package ru.geekbrains;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import ru.geekbrains.authentication.DbProvider;
-import ru.geekbrains.models.Actions.Action;
-import ru.geekbrains.models.Actions.Authentication;
-import ru.geekbrains.models.Actions.FileList;
-import ru.geekbrains.models.Actions.Status;
+import ru.geekbrains.models.Actions.*;
 import ru.geekbrains.models.Commands;
 import ru.geekbrains.models.File.CloudFile;
 import ru.geekbrains.models.File.GenericFile;
+import ru.geekbrains.models.File.PartFile;
 import ru.geekbrains.models.Message;
+import ru.geekbrains.utils.FileUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -38,7 +38,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext channel, Message message) {
+    protected void channelRead0(ChannelHandlerContext channel, Message message) throws IOException {
         log.info("Получена команда {}", message.getType());
         switch (message.getType()) {
             case LOGIN:
@@ -80,8 +80,26 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             case BACK_TO_PATH:
                 getParentPath(message, channel);
                 break;
+            case PART_FILE:
+                receivePartOfFile((PartFile) message, channel.channel());
         }
     }
+
+    private void receivePartOfFile(PartFile partFile, Channel channel) {
+        Path filePath = new File(currentDir, partFile.getFilename()).toPath();
+        try {
+            FileUtils.getInstance().prepareAndSavePart(filePath, partFile.getStartPos(), partFile.getMessage());
+            if (partFile.isLast()) {
+                channel.writeAndFlush(new Status("Файл передан на сервер " + partFile.getFilename()));
+            } else {
+                PartFileInfo partFileInfo = new PartFileInfo(partFile.getEndPos(), partFile.getFilename());
+                channel.writeAndFlush(partFileInfo);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     // получаем текущую директорию Path сервера из формы клиента и возвращаем файлы родителя и путь
     private void getParentPath(Message message, ChannelHandlerContext channel) {
@@ -138,9 +156,11 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     private void userLogin(ChannelHandlerContext channel, Message message) {
         authInfoReceived = (Authentication) message;
         authInfoToSend = dbProvider.userAuthentication(authInfoReceived.getLogin(), authInfoReceived.getPassword());
-        userRootDir = Paths.get("server-file-storage", authInfoToSend.getRootDirectory()).toFile();
-        currentDir = new File(userRootDir.getPath());
-        log.info("User registration status {}", authInfoToSend.getType());
+        log.info("User login status {}", authInfoToSend.getType());
+        if (authInfoToSend.getCommand() == Commands.AUTHENTICATED) {
+            userRootDir = Paths.get("server-file-storage", authInfoToSend.getRootDirectory()).toFile();
+            currentDir = new File(userRootDir.getPath());
+        }
         channel.writeAndFlush(authInfoToSend);
     }
 
@@ -149,15 +169,11 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     private void registerUser(ChannelHandlerContext channel, Message message) {
         authInfoReceived = (Authentication) message;
         authInfoToSend = dbProvider.userRegistration(authInfoReceived.getLogin(), authInfoReceived.getPassword());
-
-        switch (authInfoToSend.getCommand()) {
-            case REGISTERED:
-                Files.createDirectory(Paths.get("server-file-storage" + File.separator + authInfoToSend.getRootDirectory()));
-                break;
-        }
-
-        channel.writeAndFlush(authInfoToSend);
         log.info("User registration status {}", authInfoToSend.getType());
+        if (authInfoToSend.getCommand() == Commands.REGISTERED) {
+            Files.createDirectory(Paths.get("server-file-storage" + File.separator + authInfoToSend.getRootDirectory()));
+        }
+        channel.writeAndFlush(authInfoToSend);
     }
 
     // шаринг файла другому юзеру

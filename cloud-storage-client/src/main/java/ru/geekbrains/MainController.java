@@ -98,8 +98,6 @@ public class MainController implements Initializable {
     public void connectToServer() {
         createConnection();
         connectionManager.sendAuthMessage();
-        connectionManager.fileListReq();
-        connectionManager.getServerPath();
     }
 
     // сбор информации для подключения и создание коннекта
@@ -116,7 +114,7 @@ public class MainController implements Initializable {
         mainPanel.setManaged(false);
     }
 
-    // создаем клиентскую папку (на хосте не должно быть индивидуальной папке как на сервере)
+    // создаем клиентскую папку и выводим список файлов при авторизации
     public void enterClientDir() {
         try {
             clientDir = Paths.get("cloud-storage-client", "client");
@@ -124,10 +122,12 @@ public class MainController implements Initializable {
                 Files.createDirectory(clientDir);
             }
             refreshHostFiles(null);
+            hostPath.setText(clientDir.toString());
+            connectionManager.fileListReq();
+            connectionManager.getServerPath();
         } catch (Exception e) {
             log.debug("File create/read on host error ", e);
         }
-        hostPath.setText(clientDir.toString());
     }
 
     // скачиваем файл с сервера на хост

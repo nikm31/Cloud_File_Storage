@@ -5,12 +5,15 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import javafx.application.Platform;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import ru.geekbrains.models.*;
 import ru.geekbrains.models.Actions.Authentication;
+import ru.geekbrains.models.Actions.PartFileInfo;
 import ru.geekbrains.models.File.GenericFile;
+import ru.geekbrains.models.Message;
+import ru.geekbrains.utils.FileUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.List;
 
 @Slf4j
@@ -20,26 +23,26 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     // проверяем статусы сообщений от сервера
-    protected void channelRead0(ChannelHandlerContext channel, Message message) {
+    protected void channelRead0(ChannelHandlerContext channel, Message message) throws IOException {
         log.info("Получена команда {}", message.getType());
         switch (message.getType()) {
             case AUTHENTICATED:
-                isAuthTrue();
+                authenticated();
                 break;
             case NOT_AUTHENTICATED:
-                isAuthFalse();
+                notAuthenticated();
                 break;
             case REGISTERED:
-                isRegisteredTrue(message);
+                registered(message);
                 break;
             case NOT_REGISTERED:
-                isRegisteredFalse(message);
+                notRegistered(message);
                 break;
             case USER_FOUND:
-                isUserFoundTrue(message);
+                userFound(message);
                 break;
             case USER_NOT_FOUND:
-                isUserFoundFalse(message);
+                userNotFound(message);
                 break;
             case STATUS:
                 refreshStatusBar(message);
@@ -60,12 +63,20 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
             case CURRENT_PATH:
                 updateServerPath(message);
                 break;
+            case PART_FILE_INFO:
+                sendNextPart((PartFileInfo)message,channel);
         }
     }
 
+    private void sendNextPart(PartFileInfo partFileInfo, ChannelHandlerContext channel) throws IOException {
+
+        FileUtils.getInstance().sendFileByParts(new File(mainController.hostPath.getText(),partFileInfo.getFilename()).toPath(),channel.channel(),(long)partFileInfo.getMessage());
+    }
+
+
     // обновление размера файла на статус баре
     private void refreshStatusBarFilesSize(Message message) {
-        Platform.runLater(() -> mainController.setSizeStatusBar(Long.valueOf((String) message.getMessage())));
+        Platform.runLater(() -> mainController.setSizeStatusBar(Long.parseLong((String) message.getMessage())));
     }
 
     // обновляем путь на форме
@@ -76,13 +87,15 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
         });
     }
 
-    private void isAuthTrue() {
+    private void authenticated() {
         mainController.setActiveWindows(true);
         mainController.enterClientDir();
+
+        Platform.runLater(() -> mainController.statusBar.setText("Успешная авторизация"));
         log.info("Authentication successful");
     }
 
-    private void isAuthFalse() {
+    private void notAuthenticated() {
         Platform.runLater(() -> {
             mainController.authInfoBar.setText("Не верный логин / пароль");
             mainController.errorConnectionMessage();
@@ -90,25 +103,25 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
         log.debug("Authentication failed");
     }
 
-    private void isRegisteredTrue(Message message) {
+    private void registered(Message message) {
         Authentication authInfo = (Authentication) message.getMessage();
         Platform.runLater(() -> mainController.authInfoBar.setText("Успешная регистрация под логином: " + authInfo.getLogin())); // getLogin()
         log.info("Registration is success");
     }
 
-    private void isRegisteredFalse(Message message) {
+    private void notRegistered(Message message) {
         Authentication authInfo = (Authentication) message.getMessage();
-        Platform.runLater(() -> mainController.authInfoBar.setText("Данный логин: " + authInfo.getLogin() +  " уже используется в системе. В регистрации отказано."));
+        Platform.runLater(() -> mainController.authInfoBar.setText("Данный логин: " + authInfo.getLogin() + " уже используется в системе. В регистрации отказано."));
         log.debug("Registration failed");
     }
 
-    private void isUserFoundTrue(Message message) {
+    private void userFound(Message message) {
         Platform.runLater(() -> mainController.statusBar.setText("Файл успешно расшарен юзеру: " + message.getMessage()));//.getLogin()
         log.info("Link is shared");
     }
 
 
-    private void isUserFoundFalse(Message message) {
+    private void userNotFound(Message message) {
         Platform.runLater(() -> mainController.authInfoBar.setText("Такого юзера " + message.getMessage() + " нет в системе. Расшарить файл невозможно"));//.getLogin()
         log.debug("Link is not shared");
     }
@@ -135,19 +148,16 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
         Platform.runLater(() -> mainController.statusBar.setText((String) message.getMessage()));
     }
 
-    // логика скачивания файла с сервера
+    // скачиване файла с сервера
     public void downloadFile(Message message) {
-        try {
-            File dir = new File(mainController.hostPath.getText());
-            GenericFile fileSource = (GenericFile) message.getMessage();
-            File fileToCreate = new File(dir, fileSource.getFileName());
-            FileOutputStream fos = new FileOutputStream(fileToCreate);
+        File dir = new File(mainController.hostPath.getText());
+        GenericFile fileSource = (GenericFile) message.getMessage();
+        try (FileOutputStream fos = new FileOutputStream(new File(dir, fileSource.getFileName()))) {
             fos.write(fileSource.getContent());
-            fos.close();
             refreshHostList();
             log.info("File is downloaded");
         } catch (Exception e) {
-            log.error("Write error file to host", e);
+            log.error("Error write file", e);
         }
     }
 

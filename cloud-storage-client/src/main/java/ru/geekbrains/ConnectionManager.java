@@ -14,6 +14,7 @@ import ru.geekbrains.models.Actions.FileList;
 import ru.geekbrains.models.Commands;
 import ru.geekbrains.models.File.CloudFile;
 import ru.geekbrains.models.File.GenericFile;
+import ru.geekbrains.utils.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,6 +32,7 @@ public class ConnectionManager {
     private final String login;
     private final String password;
     private EventLoopGroup workGroup;
+    private ChannelFuture f;
 
     public ConnectionManager(String serverAddress, short serverPort, String login, String password, MainController mainController) {
         this.serverAddress = serverAddress;
@@ -42,12 +44,12 @@ public class ConnectionManager {
 
     // создаем подключение и подключаемся к серверу при нажатии Login
     void start() {
-            workGroup = new NioEventLoopGroup(3);
+            workGroup = new NioEventLoopGroup();
             try {
                 Bootstrap bootstrap = new Bootstrap().group(workGroup)
                         .channel(NioSocketChannel.class)
                         .handler(new ConnectionInitializer(mainController));
-                ChannelFuture f = bootstrap.connect(serverAddress, serverPort);
+                f = bootstrap.connect(serverAddress, serverPort);
                 channel = f.sync().channel();
             } catch (Exception e) {
                 log.error("Cant start server", e);
@@ -58,12 +60,17 @@ public class ConnectionManager {
     @SneakyThrows
     void stop() {
         workGroup.shutdownGracefully();
+        f.channel().closeFuture().sync();
     }
 
     // отправка файла на сервер
-    public void uploadFile(File file) throws IOException {
+    public void uploadFileOld(File file) throws IOException {
         channel.writeAndFlush(new CloudFile(new GenericFile(file.getName(), file.length(), Files.readAllBytes(file.toPath())), Commands.UPLOAD));
         fileListReq();
+    }
+
+    public  void uploadFile(File file) throws IOException {
+        FileUtils.getInstance().sendFileByParts(file.toPath(),channel,0l);
     }
 
     // отправка запроса на шаринг файла с пользователем
