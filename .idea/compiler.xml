@@ -8,12 +8,20 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="cloud-storage-client" />
+        <module name="exchange-models" />
         <module name="server-file-storage" />
-        <module name="сloud-exchange-models" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="cloud-storage-server" target="8" />
+      <module name="сloud-exchange-models" target="8" />
     </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="cloud-storage-client" options="-Xlint:unchecked" />
+      <module name="exchange-models" options="" />
+      <module name="server-file-storage" options="" />
+    </option>
   </component>
 </project>
