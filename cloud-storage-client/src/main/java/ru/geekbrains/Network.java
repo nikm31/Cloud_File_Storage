@@ -10,7 +10,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ConnectionManager {
+public class Network {
 
     private final String serverAddress;
     private final short serverPort;
@@ -18,7 +18,7 @@ public class ConnectionManager {
     private final MainController mainController;
     private EventLoopGroup workGroup;
 
-    public ConnectionManager(String serverAddress, short serverPort, MainController mainController) {
+    public Network(String serverAddress, short serverPort, MainController mainController) {
         this.serverAddress = serverAddress;
         this.serverPort = serverPort;
         this.mainController = mainController;
@@ -33,10 +33,10 @@ public class ConnectionManager {
                     .handler(new ConnectionInitializer(mainController));
             ChannelFuture future = bootstrap.connect(serverAddress, serverPort);
             channel = future.sync().channel();
+            log.debug("Connection with Server is active");
         } catch (Exception e) {
             log.error("Cant start server", e);
         }
-        log.debug("Connection with Server is active");
     }
 
     @SneakyThrows

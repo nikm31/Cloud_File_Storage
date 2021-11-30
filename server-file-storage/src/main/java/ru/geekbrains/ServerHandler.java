@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import ru.geekbrains.authentication.DbProvider;
 import ru.geekbrains.models.Actions.*;
 import ru.geekbrains.models.Commands;
-import ru.geekbrains.models.File.CloudFile;
 import ru.geekbrains.models.File.GenericFile;
 import ru.geekbrains.models.File.PartFile;
 import ru.geekbrains.models.Message;
@@ -81,7 +80,13 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 break;
             case PART_FILE:
                 receivePartOfFile((PartFile) message, channel);
+            case PART_FILE_INFO:
+                sendNextPart((PartFileInfo) message, channel);
         }
+    }
+
+    private void sendNextPart(PartFileInfo partFileInfo, ChannelHandlerContext channel) throws IOException {
+        FileUtils.getInstance().sendFileByParts(new File(currentDir, partFileInfo.getFilename()).toPath(), channel.channel(), (long) partFileInfo.getMessage());
     }
 
     private void receivePartOfFile(PartFile partFile, ChannelHandlerContext channel) {
@@ -216,16 +221,25 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
 
     // отправляем файл юзеру
     private void uploadFileToUser(ChannelHandlerContext channel, Message message) {
+        File fileToSend = Paths.get(String.valueOf(currentDir.toPath().resolve((String) message.getMessage()))).toFile();
         try {
-            GenericFile fileSource = (GenericFile) message.getMessage();
-            File fileToUpload = new File(currentDir, fileSource.getFileName());
-            CloudFile cloudFile = new CloudFile(new GenericFile(fileSource.getFileName(), fileToUpload.length(), Files.readAllBytes(fileToUpload.toPath())), Commands.UPLOAD);
-            channel.writeAndFlush(cloudFile);
-            channel.writeAndFlush(new Status("Файл отправлен клиенту " + fileSource.getFileName()));
-        } catch (Exception e) {
-            channel.writeAndFlush(new Status("Ошибка отправки файла клиенту"));
-            log.error("Error file transfer to user ", e);
+            FileUtils.getInstance().sendFileByParts(fileToSend.toPath(), channel.channel(), 0L);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+
+//        try {
+//            GenericFile fileSource = (GenericFile) message.getMessage();
+//            File fileToUpload = new File(currentDir, fileSource.getFileName());
+//            CloudFile cloudFile = new CloudFile(new GenericFile(fileSource.getFileName(), fileToUpload.length(), Files.readAllBytes(fileToUpload.toPath())), Commands.UPLOAD);
+//            channel.writeAndFlush(cloudFile);
+//            channel.writeAndFlush(new Status("Файл отправлен клиенту " + fileSource.getFileName()));
+//        } catch (Exception e) {
+//            channel.writeAndFlush(new Status("Ошибка отправки файла клиенту"));
+//            log.error("Error file transfer to user ", e);
+//        }
+
+
     }
 
     // копируем файл

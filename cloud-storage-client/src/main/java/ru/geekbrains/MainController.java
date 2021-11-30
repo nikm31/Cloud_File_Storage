@@ -14,8 +14,6 @@ import ru.geekbrains.models.Actions.Action;
 import ru.geekbrains.models.Actions.Authentication;
 import ru.geekbrains.models.Actions.FileList;
 import ru.geekbrains.models.Commands;
-import ru.geekbrains.models.File.CloudFile;
-import ru.geekbrains.models.File.GenericFile;
 import ru.geekbrains.utils.FileUtils;
 
 import java.io.File;
@@ -34,7 +32,7 @@ import java.util.stream.Collectors;
 public class MainController implements Initializable {
 
     private Path clientDir;
-    private ConnectionManager connectionManager;
+    private Network connectionManager;
 
     @FXML
     Label statusBar;
@@ -83,7 +81,7 @@ public class MainController implements Initializable {
         connectionManager.getChannel().writeAndFlush(new Authentication(loginField.getText(), passwordField.getText(), "", Commands.REGISTER));
     }
 
-    // кнопка - Login на окне аунтефикации
+    // аунтефикация
     public void connectToServer() {
         createConnection();
         sendAuthMessage();
@@ -91,15 +89,15 @@ public class MainController implements Initializable {
         getServerPath();
     }
 
-    // сбор информации для подключения и создание коннекта
+    // подключение и создание коннекта
     public void createConnection() {
         String serverAddress = getServerAddress()[0];
         short serverPort = Short.parseShort(getServerAddress()[1]);
-        connectionManager = new ConnectionManager(serverAddress, serverPort, this);
+        connectionManager = new Network(serverAddress, serverPort, this);
         connectionManager.start();
     }
 
-    // Посылаем сообщение на аунтификацию польтзователя
+    // сообщение на аунтификацию
     public void sendAuthMessage() {
         connectionManager.getChannel().writeAndFlush(new Authentication(loginField.getText(), passwordField.getText(), "", Commands.LOGIN));
     }
@@ -120,7 +118,8 @@ public class MainController implements Initializable {
 
     // скачиваем файл с сервера на клиент
     public void downloadFromServer() {
-        connectionManager.getChannel().writeAndFlush(new CloudFile(new GenericFile(getSelectedServerItem(), 0, new byte[0]), Commands.DOWNLOAD));
+     //  connectionManager.getChannel().writeAndFlush(new CloudFile(new GenericFile(getSelectedServerItem(), 0, new byte[0]), Commands.DOWNLOAD));
+        connectionManager.getChannel().writeAndFlush(new Action(getSelectedServerItem(), Commands.DOWNLOAD));
     }
 
     // закачиваем файл с клиента на сервер

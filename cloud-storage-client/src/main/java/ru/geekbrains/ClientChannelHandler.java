@@ -9,12 +9,14 @@ import lombok.extern.slf4j.Slf4j;
 import ru.geekbrains.models.Actions.Authentication;
 import ru.geekbrains.models.Actions.PartFileInfo;
 import ru.geekbrains.models.File.GenericFile;
+import ru.geekbrains.models.File.PartFile;
 import ru.geekbrains.models.Message;
 import ru.geekbrains.utils.FileUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 
 @Slf4j
@@ -66,15 +68,36 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
                 break;
             case PART_FILE_INFO:
                 sendNextPart((PartFileInfo)message,channel);
+            case PART_FILE:
+                receivePartOfFile((PartFile) message, channel);
         }
     }
 
+    // получение файла с сервера
+    private void receivePartOfFile(PartFile partFile, ChannelHandlerContext channel) {
+        Path filePath = new File(mainController.hostPath.getText(), partFile.getFilename()).toPath();
+        try {
+            FileUtils.getInstance().prepareAndSavePart(filePath, partFile.getStartPos(), partFile.getMessage());
+            if (partFile.isLast()) {
+                Platform.runLater(()-> {
+                    mainController.statusBar.setText("Файл успешно скачан");
+                    mainController.refreshHostFiles("");
+                });
+            } else {
+                PartFileInfo partFileInfo = new PartFileInfo(partFile.getEndPos(), partFile.getFilename());
+                channel.writeAndFlush(partFileInfo);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // запрос следующей части файла
     private void sendNextPart(PartFileInfo partFileInfo, ChannelHandlerContext channel) throws IOException {
         FileUtils.getInstance().sendFileByParts(new File(mainController.hostPath.getText(),partFileInfo.getFilename()).toPath(),channel.channel(),(long)partFileInfo.getMessage());
     }
 
-
-     // обновление размера файла на статус баре
+    // обновление размера файла на статус баре
     private void refreshStatusBarFilesSize(Message message) {
         Platform.runLater(() -> mainController.setSizeStatusBar(Long.parseLong((String) message.getMessage())));
     }
