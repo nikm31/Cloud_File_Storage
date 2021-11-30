@@ -67,7 +67,6 @@
                 <MenuItem mnemonicParsing="false" onAction="#hostCopyFile" text="Copy"/>
                 <MenuItem mnemonicParsing="false" onAction="#hostDeleteFile" text="Delete"/>
                 <MenuItem mnemonicParsing="false" onAction="#hostCreateNewFolder" text="New Folder"/>
-                <MenuItem mnemonicParsing="false" onAction="#hostFoldersTotalSize" text="Folders Total Size"/>
             </Menu>
             <Menu mnemonicParsing="false" text="Server">
                 <MenuItem mnemonicParsing="false" onAction="#serverCopyFile" text="Copy"/>
@@ -139,7 +138,7 @@
         <!-- формы поиска файлов -->
         <HBox prefHeight="35.0" prefWidth="780">
 
-            <TextField fx:id="hostSearchFile" onAction="#searchOnHost" promptText="hostSearchFile" HBox.hgrow="ALWAYS">
+            <TextField fx:id="hostSearchFile" onAction="#filterFilesOnHost" promptText="hostSearchFile" HBox.hgrow="ALWAYS">
                 <HBox.margin>
                     <Insets right="10.0"/>
                 </HBox.margin>

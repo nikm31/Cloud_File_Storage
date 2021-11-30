@@ -1,6 +1,5 @@
 package ru.geekbrains;
 
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.SneakyThrows;
@@ -81,11 +80,11 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 getParentPath(message, channel);
                 break;
             case PART_FILE:
-                receivePartOfFile((PartFile) message, channel.channel());
+                receivePartOfFile((PartFile) message, channel);
         }
     }
 
-    private void receivePartOfFile(PartFile partFile, Channel channel) {
+    private void receivePartOfFile(PartFile partFile, ChannelHandlerContext channel) {
         Path filePath = new File(currentDir, partFile.getFilename()).toPath();
         try {
             FileUtils.getInstance().prepareAndSavePart(filePath, partFile.getStartPos(), partFile.getMessage());

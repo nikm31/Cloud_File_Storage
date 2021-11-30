@@ -4,6 +4,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import javafx.application.Platform;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import ru.geekbrains.models.Actions.Authentication;
 import ru.geekbrains.models.Actions.PartFileInfo;
@@ -69,12 +70,11 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
     }
 
     private void sendNextPart(PartFileInfo partFileInfo, ChannelHandlerContext channel) throws IOException {
-
         FileUtils.getInstance().sendFileByParts(new File(mainController.hostPath.getText(),partFileInfo.getFilename()).toPath(),channel.channel(),(long)partFileInfo.getMessage());
     }
 
 
-    // обновление размера файла на статус баре
+     // обновление размера файла на статус баре
     private void refreshStatusBarFilesSize(Message message) {
         Platform.runLater(() -> mainController.setSizeStatusBar(Long.parseLong((String) message.getMessage())));
     }
@@ -131,6 +131,7 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
         mainController.serverPath.setText(message.getMessage().toString());
     }
 
+    @SneakyThrows
     // обновляем список файлов на сервере
     public void refreshServerList(Message message) {
         Platform.runLater(() -> {
