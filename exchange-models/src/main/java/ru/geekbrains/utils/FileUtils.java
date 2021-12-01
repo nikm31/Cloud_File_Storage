@@ -66,19 +66,10 @@ public class FileUtils {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
-    public synchronized void savePart(Path path, byte[] data) throws IOException {
-//        LOG.info("������ ���������� ��� ������ " + Thread.currentThread().getName());
+    public synchronized void savePart(Path path, byte[] data) {
         PartFileSaveThread.addPart(new PartFileWriteWrapper(path, data));
-//        try {
-//            Thread.sleep(100);
-//        } catch (InterruptedException ex) {
-//            Logger.getLogger(FileUtils.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-//        Files.write(path, data, StandardOpenOption.CREATE, StandardOpenOption.SYNC, APPEND);
-//        LOG.info("��������� ���������� ��� ������ " + Thread.currentThread().getName());
     }
 
 }

@@ -12,18 +12,15 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import ru.geekbrains.models.Actions.Action;
 import ru.geekbrains.models.Actions.Authentication;
-import ru.geekbrains.models.Actions.FileList;
 import ru.geekbrains.models.Commands;
 import ru.geekbrains.utils.FileUtils;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
@@ -32,7 +29,7 @@ import java.util.stream.Collectors;
 public class MainController implements Initializable {
 
     private Path clientDir;
-    private Network connectionManager;
+    private Network network;
 
     @FXML
     Label statusBar;
@@ -57,6 +54,8 @@ public class MainController implements Initializable {
     @FXML
     TextField hostSearchFile;
     @FXML
+    TextField serverSearchFile;
+    @FXML
     Label authInfoBar;
     @FXML
     TextField userLoginToShare;
@@ -78,14 +77,14 @@ public class MainController implements Initializable {
     // кнопка Register - регистрация юзера
     public void registerUser() {
         createConnection();
-        connectionManager.getChannel().writeAndFlush(new Authentication(loginField.getText(), passwordField.getText(), "", Commands.REGISTER));
+        network.getChannel().writeAndFlush(new Authentication(loginField.getText(), passwordField.getText(), "", Commands.REGISTER));
     }
 
     // аунтефикация
     public void connectToServer() {
         createConnection();
         sendAuthMessage();
-        fileListReq();
+        fileListReq("");
         getServerPath();
     }
 
@@ -93,40 +92,42 @@ public class MainController implements Initializable {
     public void createConnection() {
         String serverAddress = getServerAddress()[0];
         short serverPort = Short.parseShort(getServerAddress()[1]);
-        connectionManager = new Network(serverAddress, serverPort, this);
-        connectionManager.start();
+        network = new Network(serverAddress, serverPort, this);
+        network.start();
     }
 
     // сообщение на аунтификацию
     public void sendAuthMessage() {
-        connectionManager.getChannel().writeAndFlush(new Authentication(loginField.getText(), passwordField.getText(), "", Commands.LOGIN));
+        network.getChannel().writeAndFlush(new Authentication(loginField.getText(), passwordField.getText(), "", Commands.LOGIN));
     }
 
     // запрос списка файла сервера
-    public void fileListReq() {
-        try {
-            connectionManager.getChannel().writeAndFlush(new FileList(new ArrayList<>()));
-        } catch (Exception e) {
-            log.error("FileList Req Error");
-        }
+    public void fileListReq(String mask) {
+        network.getChannel().writeAndFlush(new Action(mask, Commands.FILTER_FILE_LIST));
+    }
+
+    // фильтрация списка файлов на сервере
+    public void searchOnServer() {
+        fileListReq(serverSearchFile.getText());
     }
 
     // запрос стрцуктуры каталога сервера
     public void getServerPath() {
-        connectionManager.getChannel().writeAndFlush(new Action("", Commands.GET_DIRECTORY));
+        network.getChannel().writeAndFlush(new Action("", Commands.GET_DIRECTORY));
     }
 
     // скачиваем файл с сервера на клиент
     public void downloadFromServer() {
-     //  connectionManager.getChannel().writeAndFlush(new CloudFile(new GenericFile(getSelectedServerItem(), 0, new byte[0]), Commands.DOWNLOAD));
-        connectionManager.getChannel().writeAndFlush(new Action(getSelectedServerItem(), Commands.DOWNLOAD));
+        //  connectionManager.getChannel().writeAndFlush(new CloudFile(new GenericFile(getSelectedServerItem(), 0, new byte[0]), Commands.DOWNLOAD));
+        network.getChannel().writeAndFlush(new Action(getSelectedServerItem(), Commands.DOWNLOAD));
     }
 
     // закачиваем файл с клиента на сервер
-    public void uploadToServer() throws IOException {
+    @SneakyThrows
+    public void uploadToServer() {
         File fileToSend = Paths.get(clientDir.resolve(getSelectedHostItem()).toString()).toFile();
-        FileUtils.getInstance().sendFileByParts(fileToSend.toPath(), connectionManager.getChannel(), 0L);
-        fileListReq();
+        FileUtils.getInstance().sendFileByParts(fileToSend.toPath(), network.getChannel(), 0L);
+        fileListReq("");
     }
 
     // обновить список файлов на клиенте
@@ -147,30 +148,32 @@ public class MainController implements Initializable {
     }
 
     // удаление файла на клиенте
+    @SneakyThrows
     public void hostDeleteFile() {
-        try {
-            Files.deleteIfExists(Paths.get(clientDir.resolve(getSelectedHostItem()).toString()));
-            refreshHostFiles(null);
-            log.debug("File {} is deleted", getSelectedHostItem());
-        } catch (Exception e) {
-            log.error("Cant delete file: {}", getSelectedHostItem());
+        File file = new File(clientDir.toString(), getSelectedHostItem());
+        String[] files = file.list();
+        if (file.isDirectory() & files != null) {
+            for (String s : files) {
+                File currentFile = new File(file.getPath(), s);
+                Files.deleteIfExists(currentFile.toPath());
+            }
         }
+        Files.deleteIfExists(file.toPath());
+        refreshHostFiles(null);
+        log.debug("File {} is deleted", file);
     }
 
     // создание новой папки на клиенте
+    @SneakyThrows
     public void hostCreateNewFolder() {
-        try {
-            if (Paths.get(clientDir + "\\Новая папка").toFile().exists()) {
-                int i = 1;
-                while (Paths.get(clientDir + "\\Новая папка" + " (" + i + ")").toFile().exists()) {
-                    i++;
-                }
-                Files.createDirectory(Paths.get(clientDir + "\\Новая папка" + " (" + i + ")"));
+        if (Paths.get(clientDir + "\\Новая папка").toFile().exists()) {
+            int i = 1;
+            while (Paths.get(clientDir + "\\Новая папка" + " (" + i + ")").toFile().exists()) {
+                i++;
             }
-            Files.createDirectory(Paths.get(clientDir + "\\Новая папка"));
-        } catch (IOException e) {
-            e.printStackTrace();
+            Files.createDirectory(Paths.get(clientDir + "\\Новая папка" + " (" + i + ")"));
         }
+        Files.createDirectory(Paths.get(clientDir + "\\Новая папка"));
         refreshHostFiles(null);
     }
 
@@ -187,49 +190,45 @@ public class MainController implements Initializable {
 
     // копирование файла на сервере
     public void serverCopyFile() {
-        connectionManager.getChannel().writeAndFlush(new Action(getSelectedServerItem(), Commands.COPY));
+        network.getChannel().writeAndFlush(new Action(getSelectedServerItem(), Commands.COPY));
     }
 
     // удавление файла на сервере
     public void serverDeleteFile() {
-        connectionManager.getChannel().writeAndFlush(new Action(getSelectedServerItem(), Commands.DELETE));
+        network.getChannel().writeAndFlush(new Action(getSelectedServerItem(), Commands.DELETE));
     }
 
     // закрыть соединение и выйти в окно аунтефикации
     public void closeConnection() {
         setActiveWindows(false);
-        connectionManager.stop();
-    }
-
-    // фильтр файлов на сервере
-    public void searchOnServer() {
+        network.stop();
     }
 
     // назад в директорию на сервере
     public void backServerDir() {
-        connectionManager.getChannel().writeAndFlush(new Action(serverPath.getText(), Commands.BACK_TO_PATH));
+        network.getChannel().writeAndFlush(new Action(serverPath.getText(), Commands.BACK_TO_PATH));
     }
 
     // создаем символическую ссылку другому юзеру на сервере на выбранный файл (шаринг)
     public void shareFileWithUser() {
         Authentication userInfoMessage = new Authentication(userLoginToShare.getText(), "", "", Commands.FIND_USER);
-        userInfoMessage.setFileName(getSelectedHostItem());
+        userInfoMessage.setFileName(getSelectedServerItem());
         userInfoMessage.setRootDirectory(serverPath.getText());
-        connectionManager.getChannel().writeAndFlush(userInfoMessage);
+        network.getChannel().writeAndFlush(userInfoMessage);
     }
 
     // переходим в папку на сервере
     public void enterToServerDir(MouseEvent mouseEvent) {
         if (mouseEvent.getClickCount() == 2) {
-            connectionManager.getChannel().writeAndFlush(new Action(serverFileList.getSelectionModel().getSelectedItem(), Commands.UP_TO_PATH));
+            network.getChannel().writeAndFlush(new Action(serverFileList.getSelectionModel().getSelectedItem(), Commands.UP_TO_PATH));
         } else if (mouseEvent.getClickCount() == 1) {
-            connectionManager.getChannel().writeAndFlush(new Action(serverFileList.getSelectionModel().getSelectedItem(), Commands.FILE_SIZE));
+            network.getChannel().writeAndFlush(new Action(serverFileList.getSelectionModel().getSelectedItem(), Commands.FILE_SIZE));
         }
     }
 
     // создание новой директории на серере
     public void serverCreateNewFolder() {
-        connectionManager.getChannel().writeAndFlush(new Action("", Commands.CREATE_DIRECTORY));
+        network.getChannel().writeAndFlush(new Action("", Commands.CREATE_DIRECTORY));
     }
 
     // считываем информацию с поля адрес сервера на окне авторизации
@@ -290,7 +289,7 @@ public class MainController implements Initializable {
         if (fileMask == null) {
             fileMask = "";
         }
-        String finalFileMask = fileMask;
+        String finalFileMask = fileMask.trim();
         return Files.list(path)
                 .map(p -> p.getFileName().toString())
                 .filter(fileName -> fileName.contains(finalFileMask))

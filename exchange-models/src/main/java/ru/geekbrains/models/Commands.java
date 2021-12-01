@@ -1,7 +1,6 @@
 package ru.geekbrains.models;
 
 public enum Commands {
-    UPLOAD,
     DOWNLOAD,
     LOGIN,
     REGISTER,
@@ -24,5 +23,6 @@ public enum Commands {
     FILE_LIST,
     STATUS,
     PART_FILE,
-    PART_FILE_INFO
+    PART_FILE_INFO,
+    FILTER_FILE_LIST
 }
