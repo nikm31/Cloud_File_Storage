@@ -4,17 +4,14 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import javafx.application.Platform;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import ru.geekbrains.models.Actions.Authentication;
 import ru.geekbrains.models.Actions.PartFileInfo;
-import ru.geekbrains.models.File.GenericFile;
 import ru.geekbrains.models.File.PartFile;
 import ru.geekbrains.models.Message;
 import ru.geekbrains.utils.FileUtils;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -53,10 +50,6 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
             case FILE_SIZE:
                 refreshStatusBarFilesSize(message);
                 break;
-            case UPLOAD:
-                downloadFile(message);
-                channel.flush();
-                break;
             case FILE_LIST:
                 refreshServerList(message);
                 break;
@@ -67,9 +60,11 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
                 updateServerPath(message);
                 break;
             case PART_FILE_INFO:
-                sendNextPart((PartFileInfo)message,channel);
+                sendNextPart((PartFileInfo) message, channel);
+                break;
             case PART_FILE:
                 receivePartOfFile((PartFile) message, channel);
+                break;
         }
     }
 
@@ -78,15 +73,11 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
         Path filePath = new File(mainController.hostPath.getText(), partFile.getFilename()).toPath();
         try {
             FileUtils.getInstance().prepareAndSavePart(filePath, partFile.getStartPos(), partFile.getMessage());
-            if (partFile.isLast()) {
-                Platform.runLater(()-> {
-                    mainController.statusBar.setText("Файл успешно скачан");
-                    mainController.refreshHostFiles("");
-                });
-            } else {
+            if (!partFile.isLast()) {
                 PartFileInfo partFileInfo = new PartFileInfo(partFile.getEndPos(), partFile.getFilename());
                 channel.writeAndFlush(partFileInfo);
             }
+            refreshHostList();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -94,7 +85,7 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
 
     // запрос следующей части файла
     private void sendNextPart(PartFileInfo partFileInfo, ChannelHandlerContext channel) throws IOException {
-        FileUtils.getInstance().sendFileByParts(new File(mainController.hostPath.getText(),partFileInfo.getFilename()).toPath(),channel.channel(),(long)partFileInfo.getMessage());
+        FileUtils.getInstance().sendFileByParts(new File(mainController.hostPath.getText(), partFileInfo.getFilename()).toPath(), channel.channel(), (long) partFileInfo.getMessage());
     }
 
     // обновление размера файла на статус баре
@@ -111,10 +102,11 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
     }
 
     private void authenticated() {
-        mainController.setActiveWindows(true);
-        mainController.enterClientDir();
-
-        Platform.runLater(() -> mainController.statusBar.setText("Успешная авторизация"));
+        Platform.runLater(() -> {
+            mainController.setActiveWindows(true);
+            mainController.enterClientDir();
+            mainController.statusBar.setText("Успешная авторизация");
+        });
         log.info("Authentication successful");
     }
 
@@ -143,7 +135,6 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
         log.info("Link is shared");
     }
 
-
     private void userNotFound(Message message) {
         Platform.runLater(() -> mainController.authInfoBar.setText("Такого юзера " + message.getMessage() + " нет в системе. Расшарить файл невозможно"));//.getLogin()
         log.debug("Link is not shared");
@@ -154,7 +145,6 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
         mainController.serverPath.setText(message.getMessage().toString());
     }
 
-    @SneakyThrows
     // обновляем список файлов на сервере
     public void refreshServerList(Message message) {
         Platform.runLater(() -> {
@@ -170,19 +160,6 @@ public class ClientChannelHandler extends SimpleChannelInboundHandler<Message> {
     // выводим сообщение в статус бар
     public void refreshStatusBar(Message message) {
         Platform.runLater(() -> mainController.statusBar.setText((String) message.getMessage()));
-    }
-
-    // скачиване файла с сервера
-    public void downloadFile(Message message) {
-        File dir = new File(mainController.hostPath.getText());
-        GenericFile fileSource = (GenericFile) message.getMessage();
-        try (FileOutputStream fos = new FileOutputStream(new File(dir, fileSource.getFileName()))) {
-            fos.write(fileSource.getContent());
-            refreshHostList();
-            log.info("File is downloaded");
-        } catch (Exception e) {
-            log.error("Error write file", e);
-        }
     }
 
 }

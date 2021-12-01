@@ -143,7 +143,7 @@
                     <Insets right="10.0"/>
                 </HBox.margin>
             </TextField>
-            <TextField layoutX="10.0" layoutY="10.0" onAction="#searchOnServer" promptText="serverSearchFile"
+            <TextField fx:id="serverSearchFile" layoutX="10.0" layoutY="10.0" onAction="#searchOnServer" promptText="serverSearchFile"
                        HBox.hgrow="ALWAYS">
                 <HBox.margin>
                     <Insets left="10.0"/>

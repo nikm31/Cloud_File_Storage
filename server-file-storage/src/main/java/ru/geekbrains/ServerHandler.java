@@ -7,13 +7,11 @@ import lombok.extern.slf4j.Slf4j;
 import ru.geekbrains.authentication.DbProvider;
 import ru.geekbrains.models.Actions.*;
 import ru.geekbrains.models.Commands;
-import ru.geekbrains.models.File.GenericFile;
 import ru.geekbrains.models.File.PartFile;
 import ru.geekbrains.models.Message;
 import ru.geekbrains.utils.FileUtils;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -48,9 +46,6 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             case FIND_USER:
                 shareFile(channel, message);
                 break;
-            case UPLOAD:
-                downloadFileToServer(channel, message);
-                break;
             case DOWNLOAD:
                 uploadFileToUser(channel, message);
                 break;
@@ -59,9 +54,6 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
                 break;
             case DELETE:
                 deleteFile(channel, message);
-                break;
-            case FILE_LIST:
-                sendFileList(channel, currentDir);
                 break;
             case GET_DIRECTORY:
                 sendDirectory(channel, currentDir);
@@ -72,23 +64,30 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
             case UP_TO_PATH:
                 enterToFolder(message, channel);
                 break;
-            case FILE_SIZE:
-                sendFileSize(message, channel);
-                break;
             case BACK_TO_PATH:
                 getParentPath(message, channel);
                 break;
+            case FILE_SIZE:
+                sendFileSize(message, channel);
+                break;
+            case FILTER_FILE_LIST:
+                sendFileList(channel, currentDir, message);
+                break;
             case PART_FILE:
                 receivePartOfFile((PartFile) message, channel);
+                break;
             case PART_FILE_INFO:
                 sendNextPart((PartFileInfo) message, channel);
+                break;
         }
     }
 
+    // отправляет следующую часть файла
     private void sendNextPart(PartFileInfo partFileInfo, ChannelHandlerContext channel) throws IOException {
         FileUtils.getInstance().sendFileByParts(new File(currentDir, partFileInfo.getFilename()).toPath(), channel.channel(), (long) partFileInfo.getMessage());
     }
 
+    // подготавливаем файл к отправке
     private void receivePartOfFile(PartFile partFile, ChannelHandlerContext channel) {
         Path filePath = new File(currentDir, partFile.getFilename()).toPath();
         try {
@@ -207,18 +206,6 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         channel.writeAndFlush(new Action(curDir.toString(), Commands.SEND_CURRENT_PATH));
     }
 
-    // записываем файл на сервер
-    private void downloadFileToServer(ChannelHandlerContext channel, Message message) {
-        GenericFile fileSource = (GenericFile) message.getMessage();
-        try (FileOutputStream fos = new FileOutputStream(new File(currentDir, fileSource.getFileName()))) {
-            fos.write(fileSource.getContent());
-            channel.writeAndFlush(new Status("Файл передан на сервер " + fileSource.getFileName()));
-        } catch (Exception e) {
-            channel.writeAndFlush(new Status("Ошибка записи файла на сервере"));
-            log.error("Error file transfer to server", e);
-        }
-    }
-
     // отправляем файл юзеру
     private void uploadFileToUser(ChannelHandlerContext channel, Message message) {
         File fileToSend = Paths.get(String.valueOf(currentDir.toPath().resolve((String) message.getMessage()))).toFile();
@@ -227,19 +214,6 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-//        try {
-//            GenericFile fileSource = (GenericFile) message.getMessage();
-//            File fileToUpload = new File(currentDir, fileSource.getFileName());
-//            CloudFile cloudFile = new CloudFile(new GenericFile(fileSource.getFileName(), fileToUpload.length(), Files.readAllBytes(fileToUpload.toPath())), Commands.UPLOAD);
-//            channel.writeAndFlush(cloudFile);
-//            channel.writeAndFlush(new Status("Файл отправлен клиенту " + fileSource.getFileName()));
-//        } catch (Exception e) {
-//            channel.writeAndFlush(new Status("Ошибка отправки файла клиенту"));
-//            log.error("Error file transfer to user ", e);
-//        }
-
-
     }
 
     // копируем файл
@@ -258,10 +232,18 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     // удаляем файл
     private void deleteFile(ChannelHandlerContext channel, Message message) {
         try {
-            Files.delete(Paths.get(currentDir.toPath().resolve(message.getMessage().toString()).toString()));
+            File file = new File(currentDir.toString(), message.getMessage().toString());
+            String[] files = file.list();
+            if (file.isDirectory() & files != null) {
+                for (String s : files) {
+                    File currentFile = new File(file.getPath(), s);
+                    Files.deleteIfExists(currentFile.toPath());
+                }
+            }
+            Files.deleteIfExists(file.toPath());
             sendFileList(channel, currentDir);
-            channel.writeAndFlush(new Status("Файл удален на сервере"));
-            log.debug("File is deleted");
+            channel.writeAndFlush(new Status("Файл удален на сервере " + file));
+            log.info("File is deleted " + file);
         } catch (Exception e) {
             channel.writeAndFlush(new Status("Ошибка удаления файла"));
             log.error("Cant delete file:");
@@ -269,12 +251,27 @@ public class ServerHandler extends SimpleChannelInboundHandler<Message> {
     }
 
     // обновляем список файлов
-    private void sendFileList(ChannelHandlerContext channel, File parent) {
+    private void sendFileList(ChannelHandlerContext channel, File currentDir) {
         try {
             List<String> files;
-            files = Files.list(parent.toPath()).map(p -> p.getFileName().toString())
+            files = Files.list(currentDir.toPath()).map(p -> p.getFileName().toString())
                     .collect(Collectors.toList());
             FileList fileLists = new FileList(files);
+            channel.writeAndFlush(fileLists);
+        } catch (IOException e) {
+            log.error("Cant send file list ", e);
+        }
+    }
+
+    // перегрузка метода sendFileList
+    private void sendFileList(ChannelHandlerContext channel, File currentDir, Message message) {
+        try {
+            String finalFileMask = String.valueOf(message.getMessage()).trim();
+            List<String> lists = Files.list(currentDir.toPath())
+                    .map(p -> p.getFileName().toString())
+                    .filter(fileName -> fileName.contains(finalFileMask))
+                    .collect(Collectors.toList());
+            FileList fileLists = new FileList(lists);
             channel.writeAndFlush(fileLists);
         } catch (IOException e) {
             log.error("Cant send file list ", e);

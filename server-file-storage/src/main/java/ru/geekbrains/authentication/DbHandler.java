@@ -51,7 +51,6 @@ public class DbHandler implements DbProvider {
         }
     }
 
-
     @Override
     public Authentication userAuthentication(String login, String inputPass) {
         try (PreparedStatement preparedStatement = connection.prepareStatement("select password, rootFolder from users where login = ?")) {
@@ -132,9 +131,7 @@ public class DbHandler implements DbProvider {
                     "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,\n" +
                     "login VARCHAR (30) NOT NULL UNIQUE,\n" +
                     "password STRING NOT NULL,\n" +
-                    "rootFolder VARCHAR (30) NOT NULL,\n" +
-                    "totalSize  INT,\n" +
-                    "isWritable BOOLEAN DEFAULT (true)\n" +
+                    "rootFolder VARCHAR (30) NOT NULL\n" +
                     ");";
             statement.executeUpdate(sql);
         } catch (SQLException e) {

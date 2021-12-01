@@ -17,6 +17,7 @@ import ru.geekbrains.authentication.DbHandler;
 
 @Slf4j
 public class Server {
+    private final int MAX_MESSAGE_SIZE = 1024 * 1024 * 1024;
 
     @SneakyThrows
     public Server() {
@@ -31,7 +32,7 @@ public class Server {
                         @Override
                         protected void initChannel(SocketChannel channel) {
                             channel.pipeline().addLast(
-                                    new ObjectDecoder(1024*1024*1024, ClassResolvers.cacheDisabled(null)),
+                                    new ObjectDecoder(MAX_MESSAGE_SIZE, ClassResolvers.cacheDisabled(null)),
                                     new ObjectEncoder(),
                                     new ServerHandler(dbProvider)
                             );
